@@ -1,0 +1,65 @@
+{
+  "metadata": {
+    "title": "archivedia — notas do dia",
+    "description": "Um lugar sem atrito para capturar os pensamentos do dia."
+  },
+  "common": {
+    "skip_link": "Pular para a área de captura",
+    "saving": "Salvando…",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "today_shortcut_mac": "Cmd ⏎ para salvar",
+    "today_shortcut_other": "Ctrl ⏎ para salvar"
+  },
+  "capture": {
+    "title": "Hoje",
+    "label": "Conteúdo da nota",
+    "placeholder": "Capture um pensamento antes que ele escape…",
+    "empty_error": "Escreva pelo menos um caractere antes de salvar.",
+    "saved": "Nota salva.",
+    "save_button": "Salvar nota",
+    "save_error": "Não foi possível salvar a nota."
+  },
+  "today": {
+    "label_today": "Hoje",
+    "label_viewing": "Visualizando",
+    "empty_today": "Capture o primeiro pensamento do dia acima.",
+    "empty_other": "Nenhuma nota foi registrada neste dia."
+  },
+  "dateNav": {
+    "prev": "Dia anterior",
+    "next": "Próximo dia",
+    "today": "Hoje",
+    "date_label": "Data"
+  },
+  "note": {
+    "back": "← Voltar para hoje",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "save_changes": "Salvar alterações",
+    "edit_label": "Editar conteúdo da nota",
+    "delete_title": "Excluir esta nota?",
+    "delete_description": "Esta ação não pode ser desfeita na v0.1.",
+    "save_error": "Não foi possível salvar as alterações.",
+    "delete_error": "Não foi possível excluir a nota.",
+    "empty_error": "O conteúdo da nota é obrigatório."
+  },
+  "notFound": {
+    "title": "Nota não encontrada",
+    "description": "A nota que você tentou abrir pode ter sido excluída, ou o link está incorreto.",
+    "back": "Voltar para hoje"
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Verifique os campos e tente novamente.",
+    "NOTE_NOT_FOUND": "A nota solicitada não foi encontrada.",
+    "INVALID_DATE": "Data inválida. Use o formato AAAA-MM-DD.",
+    "INVALID_TIMEZONE": "Fuso horário inválido.",
+    "DATABASE_UNAVAILABLE": "O banco de dados está indisponível no momento.",
+    "INTERNAL_ERROR": "Erro interno do servidor."
+  },
+  "switcher": {
+    "label": "Idioma",
+    "pt-BR": "Português",
+    "en": "English"
+  }
+}

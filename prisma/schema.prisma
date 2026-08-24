@@ -1,0 +1,30 @@
+// Prisma schema for archivedia (a.k.a. headapp).
+// One entity in v0.1: Note. Timestamps are stored UTC and surfaced as ISO 8601.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto]
+}
+
+enum NoteStatus {
+  inbox
+}
+
+model Note {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicId  String     @unique @map("public_id") @db.VarChar(64)
+  content   String     @db.Text
+  status    NoteStatus @default(inbox)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime?  @map("deleted_at") @db.Timestamptz(6)
+
+  @@index([createdAt(sort: Desc)], name: "idx_notes_created_at")
+  @@map("notes")
+}

@@ -1,0 +1,65 @@
+{
+  "metadata": {
+    "title": "archivedia — daily notes",
+    "description": "A frictionless place to capture today's thoughts."
+  },
+  "common": {
+    "skip_link": "Skip to capture",
+    "saving": "Saving…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "today_shortcut_mac": "Cmd ⏎ to save",
+    "today_shortcut_other": "Ctrl ⏎ to save"
+  },
+  "capture": {
+    "title": "Today",
+    "label": "Note content",
+    "placeholder": "Capture a thought before it slips away…",
+    "empty_error": "Write at least one non-whitespace character before saving.",
+    "saved": "Note saved.",
+    "save_button": "Save note",
+    "save_error": "Could not save note."
+  },
+  "today": {
+    "label_today": "Today",
+    "label_viewing": "Viewing",
+    "empty_today": "Capture the first thought of the day above.",
+    "empty_other": "No notes were captured on this day."
+  },
+  "dateNav": {
+    "prev": "Previous day",
+    "next": "Next day",
+    "today": "Today",
+    "date_label": "Date"
+  },
+  "note": {
+    "back": "← Back to today",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save_changes": "Save changes",
+    "edit_label": "Edit note content",
+    "delete_title": "Delete this note?",
+    "delete_description": "This cannot be undone in v0.1.",
+    "save_error": "Could not save changes.",
+    "delete_error": "Could not delete note.",
+    "empty_error": "Note content is required."
+  },
+  "notFound": {
+    "title": "Note not found",
+    "description": "The note you tried to open may have been deleted, or the link is wrong.",
+    "back": "Back to today"
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Please review the fields and try again.",
+    "NOTE_NOT_FOUND": "The requested note was not found.",
+    "INVALID_DATE": "Invalid date. Use the YYYY-MM-DD format.",
+    "INVALID_TIMEZONE": "Invalid timezone.",
+    "DATABASE_UNAVAILABLE": "The database is currently unavailable.",
+    "INTERNAL_ERROR": "Internal server error."
+  },
+  "switcher": {
+    "label": "Language",
+    "pt-BR": "Português",
+    "en": "English"
+  }
+}
