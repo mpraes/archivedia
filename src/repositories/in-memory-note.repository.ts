@@ -1,6 +1,6 @@
 import type { Note } from "@/domain/note";
 import type { NoteStatus } from "@/domain/note-status";
-import { NoteNotProcessable, type NoteRepository } from "./note.repository";
+import { NoteNotProcessable, type NotePatch, type NoteRepository } from "./note.repository";
 
 /**
  * In-memory fake for unit tests. Keeps the public contract faithful
@@ -10,7 +10,13 @@ export class InMemoryNoteRepository implements NoteRepository {
   private rows = new Map<string, Note>();
   private counter = 0;
 
-  async insert(input: { publicId: string; content: string; createdAt: Date }): Promise<Note> {
+  async insert(input: {
+    publicId: string;
+    content: string;
+    linkedNoteIds: string[];
+    tags: string[];
+    createdAt: Date;
+  }): Promise<Note> {
     this.counter += 1;
     const id = `00000000-0000-0000-0000-${String(this.counter).padStart(12, "0")}`;
     const note: Note = {
@@ -18,6 +24,8 @@ export class InMemoryNoteRepository implements NoteRepository {
       publicId: input.publicId,
       content: input.content,
       status: "inbox",
+      linkedNoteIds: [...input.linkedNoteIds],
+      tags: [...input.tags],
       createdAt: input.createdAt,
       updatedAt: input.createdAt,
       deletedAt: null,
@@ -31,19 +39,19 @@ export class InMemoryNoteRepository implements NoteRepository {
     return row && row.deletedAt === null ? row : null;
   }
 
+  async findActiveByPublicId(publicId: string): Promise<Note | null> {
+    for (const row of this.rows.values()) {
+      if (row.deletedAt !== null) continue;
+      if (row.publicId === publicId) return row;
+    }
+    return null;
+  }
+
   async listByDay(start: Date, end: Date, limit: number): Promise<Note[]> {
     return [...this.rows.values()]
       .filter((n) => n.deletedAt === null && n.createdAt >= start && n.createdAt < end)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, limit);
-  }
-
-  async updateContent(id: string, content: string, updatedAt: Date): Promise<Note> {
-    const current = this.rows.get(id);
-    if (!current || current.deletedAt !== null) throw new Error("NOTE_GONE");
-    const next: Note = { ...current, content, updatedAt };
-    this.rows.set(id, next);
-    return next;
   }
 
   async softDelete(id: string, deletedAt: Date): Promise<boolean> {
@@ -74,9 +82,27 @@ export class InMemoryNoteRepository implements NoteRepository {
     return null;
   }
 
+  async patchNote(id: string, patch: NotePatch, updatedAt: Date): Promise<Note | null> {
+    const current = this.rows.get(id);
+    if (!current || current.deletedAt !== null) return null;
+    const next: Note = {
+      ...current,
+      updatedAt,
+      content: patch.content !== undefined ? patch.content : current.content,
+      tags: patch.tags !== undefined ? [...patch.tags] : current.tags,
+      linkedNoteIds:
+        patch.content !== undefined && patch.linkedNoteIds !== undefined
+          ? [...patch.linkedNoteIds]
+          : current.linkedNoteIds,
+    };
+    this.rows.set(id, next);
+    return next;
+  }
+
   async updateContentAndStatus(
     id: string,
     content: string,
+    linkedNoteIds: string[],
     updatedAt: Date,
     fromStatus: NoteStatus,
     toStatus: NoteStatus,
@@ -84,8 +110,38 @@ export class InMemoryNoteRepository implements NoteRepository {
     const current = this.rows.get(id);
     if (!current || current.deletedAt !== null) return null;
     if (current.status !== fromStatus) throw new NoteNotProcessable(current.status);
-    const next: Note = { ...current, content, updatedAt, status: toStatus };
+    const next: Note = {
+      ...current,
+      content,
+      linkedNoteIds: [...linkedNoteIds],
+      updatedAt,
+      status: toStatus,
+    };
     this.rows.set(id, next);
     return next;
+  }
+
+  async listWithFilters(input: {
+    q?: string;
+    status?: NoteStatus;
+    tag?: string;
+    limit: number;
+  }): Promise<Note[]> {
+    const q = input.q?.toLowerCase();
+    return [...this.rows.values()]
+      .filter((n) => n.deletedAt === null)
+      .filter((n) => (q ? n.content.toLowerCase().includes(q) : true))
+      .filter((n) => (input.status ? n.status === input.status : true))
+      .filter((n) => (input.tag ? n.tags.includes(input.tag) : true))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, input.limit);
+  }
+
+  async findBacklinks(targetPublicId: string, limit: number): Promise<Note[]> {
+    return [...this.rows.values()]
+      .filter((n) => n.deletedAt === null)
+      .filter((n) => n.linkedNoteIds.includes(targetPublicId))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
   }
 }

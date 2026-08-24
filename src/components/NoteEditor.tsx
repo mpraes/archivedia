@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { ApiError, api } from "@/lib/api";
 import { translateErrorSync } from "@/lib/errors-i18n";
 import type { NoteDto } from "@/lib/note-dto";
 import { formatLocalDateTime } from "@/lib/format";
+import { BacklinksPanel } from "./BacklinksPanel";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { LinkifiedText } from "./LinkifiedText";
+import { TagEditor } from "./TagEditor";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface NoteEditorProps {
   initialNote: NoteDto;
@@ -30,21 +34,6 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<string | null>(null);
-  const [confirmationVisible, setConfirmationVisible] = useState(false);
-
-  useEffect(() => {
-    if (!confirmation) {
-      setConfirmationVisible(false);
-      return;
-    }
-    setConfirmationVisible(true);
-    const fadeTimer = window.setTimeout(() => setConfirmationVisible(false), 2300);
-    const clearTimer = window.setTimeout(() => setConfirmation(null), 2600);
-    return () => {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(clearTimer);
-    };
-  }, [confirmation]);
 
   const startEdit = useCallback(() => {
     setDraft(note.content);
@@ -79,7 +68,7 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
     setSaving(true);
     setError(null);
     try {
-      const { data } = await api.updateNote(note.id, trimmed);
+      const { data } = await api.updateNote(note.id, { content: trimmed });
       setNote(data);
       setMode("view");
       router.refresh();
@@ -129,7 +118,8 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <ThemeToggle />
         <LanguageSwitcher />
       </div>
 
@@ -140,7 +130,7 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
         <StatusBadge status={note.status} />
       </nav>
 
-      <article className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-white/70 p-6 sm:p-8 shadow-[0_1px_0_rgba(0,0,0,0.02),0_12px_30px_-20px_rgba(0,0,0,0.15)]">
+      <article className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-surface p-6 sm:p-8 shadow-[0_1px_0_rgba(0,0,0,0.02),0_12px_30px_-20px_rgba(0,0,0,0.15)]">
         <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--color-line)] pb-3">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-ink-soft)]">
@@ -151,12 +141,12 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
             </time>
           </div>
           {mode === "view" ? (
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {canProcess ? (
                 <button
                   type="button"
                   onClick={startProcess}
-                  className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--color-accent)]/90"
+                  className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-white hover:bg-[var(--color-accent)]/90"
                 >
                   {t("process_button")}
                 </button>
@@ -164,7 +154,7 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
               <button
                 type="button"
                 onClick={startEdit}
-                className="rounded-full border border-[var(--color-line)] bg-white px-4 py-1.5 text-sm hover:border-[var(--color-accent)]"
+                className="rounded-full border border-[var(--color-line)] bg-surface px-4 py-1.5 text-sm hover:border-[var(--color-accent)]"
               >
                 {t("edit")}
               </button>
@@ -180,9 +170,9 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
         </header>
 
         {mode === "view" ? (
-          <p className="mt-5 whitespace-pre-wrap font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)]">
-            {note.content}
-          </p>
+          <div className="mt-5 whitespace-pre-wrap font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)]">
+            <LinkifiedText content={note.content} />
+          </div>
         ) : mode === "edit" ? (
           <EditorForm
             id="edit-note"
@@ -215,19 +205,20 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
           />
         )}
 
-        <div aria-live="polite" className="mt-3 min-h-[1.25rem]">
+        <div aria-live="polite" className="mt-3 min-h-[1.25rem] text-sm">
           {confirmation && mode === "view" ? (
-            <p
-              className={`inline-flex items-center gap-2 rounded-lg border border-[var(--color-accent)]/15 bg-[var(--color-accent-soft)]/60 px-3 py-2 text-sm font-medium text-[var(--color-accent)] transition-opacity duration-300 ease-out ${
-                confirmationVisible ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-              {confirmation}
-            </p>
+            <p className="text-[var(--color-accent)]">{confirmation}</p>
           ) : null}
         </div>
       </article>
+
+      <TagEditor
+        noteId={note.id}
+        initialTags={[...note.tags]}
+        onSaved={(tags) => setNote((prev) => ({ ...prev, tags }))}
+      />
+
+      <BacklinksPanel noteId={note.id} />
 
       <ConfirmDialog
         open={confirmOpen}
@@ -291,7 +282,7 @@ function EditorForm({
         autoFocus
         aria-invalid={error ? "true" : "false"}
         aria-describedby={error ? errorId : undefined}
-        className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] focus:border-[var(--color-accent)] focus:bg-white"
+        className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] focus:border-[var(--color-accent)] focus:bg-surface"
       />
       {error ? (
         <p id={errorId} role="alert" className="text-sm text-[var(--color-warn)]">
@@ -302,7 +293,7 @@ function EditorForm({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
+          className="rounded-full border border-[var(--color-line)] bg-surface px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
         >
           {cancelLabel}
         </button>
@@ -347,16 +338,6 @@ function ProcessForm({
   submittingLabel,
   cancelLabel,
 }: ProcessFormProps) {
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault();
-        if (!submitting) onSubmit();
-      }
-    },
-    [onSubmit, submitting],
-  );
-
   return (
     <form
       onSubmit={(event) => {
@@ -365,9 +346,9 @@ function ProcessForm({
       }}
       className="mt-5 flex flex-col gap-4"
     >
-      <header className="flex flex-col gap-1 rounded-r-lg border-l-4 border-[var(--color-accent)] bg-[var(--color-accent-soft)]/40 p-4">
-        <h2 className="font-[var(--font-display)] text-xl text-[var(--color-ink)]">{heading}</h2>
-        <p className="text-sm leading-relaxed text-[var(--color-ink-soft)]">{hint}</p>
+      <header className="flex flex-col gap-1">
+        <h2 className="font-[var(--font-display)] text-lg text-[var(--color-ink)]">{heading}</h2>
+        <p className="text-sm text-[var(--color-ink-soft)]">{hint}</p>
       </header>
       <label htmlFor="process-note" className="sr-only">
         {label}
@@ -376,23 +357,22 @@ function ProcessForm({
         id="process-note"
         value={draft}
         onChange={(event) => onChange(event.target.value)}
-        onKeyDown={handleKeyDown}
         rows={12}
         autoFocus
         aria-invalid={error ? "true" : "false"}
         aria-describedby={error ? "process-error" : undefined}
-        className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] focus:border-[var(--color-accent)] focus:bg-white"
+        className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] focus:border-[var(--color-accent)] focus:bg-surface"
       />
       {error ? (
         <p id="process-error" role="alert" className="text-sm text-[var(--color-warn)]">
           {error}
         </p>
       ) : null}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-2">
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
+          className="rounded-full border border-[var(--color-line)] bg-surface px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
         >
           {cancelLabel}
         </button>
@@ -411,24 +391,13 @@ function ProcessForm({
 import type { NoteStatus } from "@/domain/note-status";
 
 function StatusBadge({ status }: { status: NoteStatus }) {
-  // Status label is intentionally English-only here; the list already
-  // shows localised labels via i18n. Keep this badge short and scannable
-  // in the note header.
   const label = status === "permanent" ? "permanent" : status;
   const tone =
     status === "permanent"
       ? "border border-[var(--color-line)] bg-[var(--color-paper)] text-[var(--color-ink-soft)]"
       : "bg-[var(--color-accent-soft)] text-[var(--color-accent)]";
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out ${tone}`}
-    >
-      {status === "permanent" ? (
-        <span
-          className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-current opacity-70"
-          aria-hidden="true"
-        />
-      ) : null}
+    <span className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] ${tone}`}>
       {label}
     </span>
   );

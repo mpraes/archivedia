@@ -35,7 +35,7 @@ export function LanguageSwitcher() {
         onChange={(event) => select(event.target.value as Locale)}
         disabled={pending}
         aria-label={t("label")}
-        className="rounded-full border border-[var(--color-line)] bg-white px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--color-ink)]"
+        className="rounded-full border border-[var(--color-line)] bg-surface px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--color-ink)]"
       >
         {locales.map((code) => (
           <option key={code} value={code}>

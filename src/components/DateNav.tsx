@@ -35,7 +35,7 @@ export function DateNav({ date, todayDate }: DateNavProps) {
         type="button"
         onClick={() => navigate(shiftDate(date, -1))}
         aria-label={t("prev")}
-        className="rounded-full border border-[var(--color-line)] bg-white px-3 py-1 hover:border-[var(--color-accent)]"
+        className="rounded-full border border-[var(--color-line)] bg-surface px-3 py-1 hover:border-[var(--color-accent)]"
       >
         ←
       </button>
@@ -46,14 +46,14 @@ export function DateNav({ date, todayDate }: DateNavProps) {
           value={date}
           onChange={onChange}
           lang={t("date_label") === "Date" ? "en" : "pt-BR"}
-          className="rounded-full border border-[var(--color-line)] bg-white px-3 py-1 text-sm text-[var(--color-ink)]"
+          className="rounded-full border border-[var(--color-line)] bg-surface px-3 py-1 text-sm text-[var(--color-ink)]"
         />
       </label>
       <button
         type="button"
         onClick={() => navigate(shiftDate(date, 1))}
         aria-label={t("next")}
-        className="rounded-full border border-[var(--color-line)] bg-white px-3 py-1 hover:border-[var(--color-accent)]"
+        className="rounded-full border border-[var(--color-line)] bg-surface px-3 py-1 hover:border-[var(--color-accent)]"
       >
         →
       </button>

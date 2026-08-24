@@ -50,7 +50,7 @@ export function ConfirmDialog({
       onCancel={handleCancel}
       onClose={onCancel}
       aria-labelledby="confirm-title"
-      className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-white p-0 backdrop:bg-black/30"
+      className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-surface p-0 backdrop:bg-black/30"
     >
       <div className="w-[min(28rem,90vw)] p-6">
         <h2 id="confirm-title" className="font-[var(--font-display)] text-xl text-[var(--color-ink)]">
@@ -61,7 +61,7 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
+            className="rounded-full border border-[var(--color-line)] bg-surface px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
           >
             {cancelLabel}
           </button>

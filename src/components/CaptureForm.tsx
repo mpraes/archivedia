@@ -74,7 +74,7 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
     <section
       id="capture"
       aria-labelledby="capture-label"
-      className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-white/70 backdrop-blur p-5 sm:p-7 shadow-[0_1px_0_rgba(0,0,0,0.02),0_12px_30px_-20px_rgba(0,0,0,0.15)]"
+      className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-surface p-5 sm:p-7 shadow-[0_1px_0_rgba(0,0,0,0.02),0_12px_30px_-20px_rgba(0,0,0,0.15)]"
     >
       <div className="flex items-baseline justify-between gap-3 mb-3">
         <h1 id="capture-label" className="font-[var(--font-display)] text-2xl sm:text-3xl text-[var(--color-ink)]">
@@ -98,7 +98,7 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
         rows={6}
         aria-invalid={error ? "true" : "false"}
         aria-describedby={error ? "capture-error" : undefined}
-        className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] placeholder:text-[var(--color-ink-soft)]/70 focus:border-[var(--color-accent)] focus:bg-white"
+        className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] placeholder:text-[var(--color-ink-soft)]/70 focus:border-[var(--color-accent)] focus:bg-surface"
       />
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

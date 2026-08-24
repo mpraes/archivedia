@@ -15,7 +15,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const json = await req.json().catch(() => ({}));
     const body = createNoteBodySchema.parse(json);
     const deps = getNoteServiceDeps();
-    const note = await createNote(deps, body.content);
+    const note = await createNote(deps, body.content, { tags: body.tags });
     return Response.json({ data: noteDto(note) }, { status: 201 });
   } catch (err) {
     return toErrorResponse(err);
@@ -29,6 +29,9 @@ export async function GET(req: NextRequest): Promise<Response> {
       date: parseDateParam(url.searchParams.get("date") ?? undefined),
       timezone: url.searchParams.get("timezone") ?? undefined,
       limit: url.searchParams.get("limit") ?? undefined,
+      q: url.searchParams.get("q") ?? undefined,
+      status: url.searchParams.get("status") ?? undefined,
+      tag: url.searchParams.get("tag") ?? undefined,
     });
     const deps = getNoteServiceDeps();
     const result = await listDailyNotes(deps, query);

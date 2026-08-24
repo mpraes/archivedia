@@ -51,7 +51,40 @@
     "process_cancel": "Cancel",
     "process_error": "Could not process note.",
     "processed_toast": "Note processed as permanent.",
-    "status_permanent": "permanent"
+    "status_permanent": "permanent",
+    "tags_label": "Tags",
+    "tags_placeholder": "Add tag…",
+    "tags_add": "Add",
+    "tags_remove": "Remove tag {tag}",
+    "tags_empty": "No tags yet. Add some to group related notes.",
+    "tags_hint": "Press Enter or comma to add.",
+    "tags_save_error": "Could not save tags.",
+    "tags_saved": "Tags updated.",
+    "tags_cleared": "Tags cleared.",
+    "backlinks_title": "Notes that reference this",
+    "backlinks_empty": "No notes reference this one yet.",
+    "backlinks_count": "{count, plural, one {# reference} other {# references}}",
+    "link_unresolved": "Note not found"
+  },
+  "search": {
+    "label": "Search",
+    "placeholder": "Search notes…",
+    "submit": "Search",
+    "results_label": "Search results",
+    "empty": "No results for this search.",
+    "count": "{count, plural, one {# result} other {# results}}",
+    "clear": "Clear search"
+  },
+  "filters": {
+    "permanent": "Permanent",
+    "tag_label": "Filter by tag",
+    "tag_clear": "Clear tag filter",
+    "recent": "Recently processed"
+  },
+  "theme": {
+    "light": "Light theme",
+    "dark": "Dark theme",
+    "toggle": "Toggle theme"
   },
   "notFound": {
     "title": "Note not found",

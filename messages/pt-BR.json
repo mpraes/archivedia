@@ -51,7 +51,40 @@
     "process_cancel": "Cancelar",
     "process_error": "Não foi possível processar a nota.",
     "processed_toast": "Nota processada como permanente.",
-    "status_permanent": "permanente"
+    "status_permanent": "permanente",
+    "tags_label": "Tags",
+    "tags_placeholder": "Adicionar tag…",
+    "tags_add": "Adicionar",
+    "tags_remove": "Remover tag {tag}",
+    "tags_empty": "Sem tags. Adicione algumas para agrupar notas relacionadas.",
+    "tags_hint": "Pressione Enter ou vírgula para adicionar.",
+    "tags_save_error": "Não foi possível salvar as tags.",
+    "tags_saved": "Tags atualizadas.",
+    "tags_cleared": "Tags removidas.",
+    "backlinks_title": "Notas que referenciam esta",
+    "backlinks_empty": "Nenhuma nota referencia esta ainda.",
+    "backlinks_count": "{count, plural, one {# referência} other {# referências}}",
+    "link_unresolved": "Nota não encontrada"
+  },
+  "search": {
+    "label": "Buscar",
+    "placeholder": "Buscar nas notas…",
+    "submit": "Buscar",
+    "results_label": "Resultados da busca",
+    "empty": "Nenhum resultado para esta busca.",
+    "count": "{count, plural, one {# resultado} other {# resultados}}",
+    "clear": "Limpar busca"
+  },
+  "filters": {
+    "permanent": "Permanentes",
+    "tag_label": "Filtrar por tag",
+    "tag_clear": "Limpar filtro de tag",
+    "recent": "Recém-processadas"
+  },
+  "theme": {
+    "light": "Tema claro",
+    "dark": "Tema escuro",
+    "toggle": "Alternar tema"
   },
   "notFound": {
     "title": "Nota não encontrada",

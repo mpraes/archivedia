@@ -3,6 +3,7 @@ import { toErrorResponse } from "@/errors/error-handler";
 import { processNoteBodySchema, updateNoteBodySchema } from "@/schemas/note.schema";
 import { deleteNote } from "@/services/delete-note.service";
 import { getNote } from "@/services/get-note.service";
+import { getBacklinks } from "@/services/backlinks.service";
 import { getNoteServiceDeps } from "@/services/dependencies";
 import { processNote } from "@/services/process-note.service";
 import { updateNote } from "@/services/update-note.service";
@@ -32,7 +33,11 @@ export async function PATCH(req: NextRequest, ctx: RouteParams): Promise<Respons
   try {
     const { noteId } = await ctx.params;
     const body = updateNoteBodySchema.parse(await req.json().catch(() => ({})));
-    const note = await updateNote(getNoteServiceDeps(), noteIdFromParams({ noteId }), body.content);
+    const note = await updateNote(
+      getNoteServiceDeps(),
+      noteIdFromParams({ noteId }),
+      { content: body.content, tags: body.tags },
+    );
     return Response.json({ data: noteDto(note) });
   } catch (err) {
     return toErrorResponse(err);
@@ -59,6 +64,16 @@ export async function POST_PROCESS(req: NextRequest, ctx: RouteParams): Promise<
       body.content,
     );
     return Response.json({ data: noteDto(note) });
+  } catch (err) {
+    return toErrorResponse(err);
+  }
+}
+
+export async function GET_BACKLINKS(_req: NextRequest, ctx: RouteParams): Promise<Response> {
+  try {
+    const { noteId } = await ctx.params;
+    const notes = await getBacklinks(getNoteServiceDeps(), noteIdFromParams({ noteId }));
+    return Response.json({ data: notes.map(noteDto) });
   } catch (err) {
     return toErrorResponse(err);
   }

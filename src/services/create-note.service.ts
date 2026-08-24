@@ -1,6 +1,8 @@
 import type { Note } from "@/domain/note";
 import { AppError } from "@/errors/app-error";
+import { extractLinkedNoteIds } from "@/lib/note-links";
 import { formatPublicIdStem, minuteBucket } from "@/lib/public-note-id";
+import { normaliseTags } from "@/lib/note-links";
 import type { NoteServiceDeps } from "./dependencies";
 
 /**
@@ -13,10 +15,14 @@ import type { NoteServiceDeps } from "./dependencies";
  * content in the same minute bucket and return it unchanged. This absorbs
  * accidental double-saves (e.g. rapid Ctrl/Cmd+Enter) without producing a
  * duplicate row.
+ *
+ * v0.4 also extracts `[[publicId]]` references from the content; v0.5
+ * normalises the optional tag list.
  */
 export async function createNote(
   deps: NoteServiceDeps,
   content: string,
+  options: { tags?: string[] } = {},
   now: Date = new Date(),
 ): Promise<Note> {
   const bucket = minuteBucket(now, deps.timezone);
@@ -28,13 +34,27 @@ export async function createNote(
   const existing = await deps.repository.countByPublicIdPrefix(bucketPrefix);
   const sequence = existing + 1;
   const publicId = formatPublicIdStem(now, deps.timezone, sequence);
+  const tags = normaliseTags(options.tags);
+  const linkedNoteIds = extractLinkedNoteIds(content);
 
   try {
-    return await deps.repository.insert({ publicId, content, createdAt: now });
+    return await deps.repository.insert({
+      publicId,
+      content,
+      linkedNoteIds,
+      tags,
+      createdAt: now,
+    });
   } catch {
     const fallback = `${publicId}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     try {
-      return await deps.repository.insert({ publicId: fallback, content, createdAt: now });
+      return await deps.repository.insert({
+        publicId: fallback,
+        content,
+        linkedNoteIds,
+        tags,
+        createdAt: now,
+      });
     } catch {
       throw AppError.databaseUnavailable();
     }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import { themeInitScript } from "@/components/ThemeToggle";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,6 +29,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale}>
+      <head>
+        {/*
+         * Theme attribute must be set before React mounts to avoid a
+         * flash of the wrong palette on dark-mode devices. Inline script
+         * reads localStorage / prefers-color-scheme synchronously.
+         */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <a

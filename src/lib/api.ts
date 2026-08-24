@@ -1,4 +1,5 @@
 import type { NoteDto } from "@/lib/note-dto";
+import type { NoteStatus } from "@/domain/note-status";
 
 /**
  * Thin browser-side wrapper around /api/v1. Centralising fetch here keeps
@@ -7,6 +8,18 @@ import type { NoteDto } from "@/lib/note-dto";
 
 const BASE = "/api/v1";
 
+export interface ListNotesParams {
+  date?: string;
+  timezone?: string;
+  limit?: number;
+  /** Cross-day content search. When set, `date` is ignored on the server. */
+  q?: string;
+  /** Filter by status; "permanent" surfaces the recall view. */
+  status?: NoteStatus;
+  /** Filter by tag membership. */
+  tag?: string;
+}
+
 export interface ListNotesResponse {
   data: NoteDto[];
   meta: { date: string; timezone: string; total: number };
@@ -14,6 +27,10 @@ export interface ListNotesResponse {
 
 export interface SingleNoteResponse {
   data: NoteDto;
+}
+
+export interface BacklinksResponse {
+  data: NoteDto[];
 }
 
 export class ApiError extends Error {
@@ -68,22 +85,30 @@ async function sendJson<T>(method: "POST" | "PATCH" | "DELETE", path: string, bo
 }
 
 export const api = {
-  listNotes(params: { date?: string; timezone?: string; limit?: number } = {}): Promise<ListNotesResponse> {
+  listNotes(params: ListNotesParams = {}): Promise<ListNotesResponse> {
     const search = new URLSearchParams();
     if (params.date) search.set("date", params.date);
     if (params.timezone) search.set("timezone", params.timezone);
     if (params.limit !== undefined) search.set("limit", String(params.limit));
+    if (params.q) search.set("q", params.q);
+    if (params.status) search.set("status", params.status);
+    if (params.tag) search.set("tag", params.tag);
     const qs = search.toString();
     return getJson<ListNotesResponse>(`/notes${qs ? `?${qs}` : ""}`);
   },
-  createNote(content: string): Promise<SingleNoteResponse> {
-    return sendJson<SingleNoteResponse>("POST", "/notes", { content });
+  createNote(content: string, tags?: string[]): Promise<SingleNoteResponse> {
+    return sendJson<SingleNoteResponse>("POST", "/notes", { content, tags });
   },
   getNote(id: string): Promise<SingleNoteResponse> {
     return getJson<SingleNoteResponse>(`/notes/${encodeURIComponent(id)}`);
   },
-  updateNote(id: string, content: string): Promise<SingleNoteResponse> {
-    return sendJson<SingleNoteResponse>("PATCH", `/notes/${encodeURIComponent(id)}`, { content });
+  /**
+   * Partial update. Pass `content` to rewrite (links re-extracted),
+   * `tags` to replace the tag list, or both. At least one is required.
+   * Pass `tags: []` to clear all tags.
+   */
+  updateNote(id: string, patch: { content?: string; tags?: string[] }): Promise<SingleNoteResponse> {
+    return sendJson<SingleNoteResponse>("PATCH", `/notes/${encodeURIComponent(id)}`, patch);
   },
   deleteNote(id: string): Promise<null> {
     return sendJson<null>("DELETE", `/notes/${encodeURIComponent(id)}`);
@@ -100,6 +125,9 @@ export const api = {
       `/notes/${encodeURIComponent(id)}/process`,
       { content },
     );
+  },
+  getBacklinks(id: string): Promise<BacklinksResponse> {
+    return getJson<BacklinksResponse>(`/notes/${encodeURIComponent(id)}/backlinks`);
   },
   health(): Promise<{ status: string; service: string; timestamp: string; database: string }> {
     return getJson("/health");
