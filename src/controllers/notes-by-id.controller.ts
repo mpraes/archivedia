@@ -1,9 +1,10 @@
 import type { NextRequest } from "next/server";
 import { toErrorResponse } from "@/errors/error-handler";
-import { updateNoteBodySchema } from "@/schemas/note.schema";
+import { processNoteBodySchema, updateNoteBodySchema } from "@/schemas/note.schema";
 import { deleteNote } from "@/services/delete-note.service";
 import { getNote } from "@/services/get-note.service";
 import { getNoteServiceDeps } from "@/services/dependencies";
+import { processNote } from "@/services/process-note.service";
 import { updateNote } from "@/services/update-note.service";
 import { noteDto } from "@/lib/note-dto";
 
@@ -43,6 +44,21 @@ export async function DELETE(_req: NextRequest, ctx: RouteParams): Promise<Respo
     const { noteId } = await ctx.params;
     await deleteNote(getNoteServiceDeps(), noteIdFromParams({ noteId }));
     return new Response(null, { status: 204 });
+  } catch (err) {
+    return toErrorResponse(err);
+  }
+}
+
+export async function POST_PROCESS(req: NextRequest, ctx: RouteParams): Promise<Response> {
+  try {
+    const { noteId } = await ctx.params;
+    const body = processNoteBodySchema.parse(await req.json().catch(() => ({})));
+    const note = await processNote(
+      getNoteServiceDeps(),
+      noteIdFromParams({ noteId }),
+      body.content,
+    );
+    return Response.json({ data: noteDto(note) });
   } catch (err) {
     return toErrorResponse(err);
   }

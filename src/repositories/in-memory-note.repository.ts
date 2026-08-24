@@ -1,5 +1,6 @@
 import type { Note } from "@/domain/note";
-import type { NoteRepository } from "./note.repository";
+import type { NoteStatus } from "@/domain/note-status";
+import { NoteNotProcessable, type NoteRepository } from "./note.repository";
 
 /**
  * In-memory fake for unit tests. Keeps the public contract faithful
@@ -71,5 +72,20 @@ export class InMemoryNoteRepository implements NoteRepository {
       return row;
     }
     return null;
+  }
+
+  async updateContentAndStatus(
+    id: string,
+    content: string,
+    updatedAt: Date,
+    fromStatus: NoteStatus,
+    toStatus: NoteStatus,
+  ): Promise<Note | null> {
+    const current = this.rows.get(id);
+    if (!current || current.deletedAt !== null) return null;
+    if (current.status !== fromStatus) throw new NoteNotProcessable(current.status);
+    const next: Note = { ...current, content, updatedAt, status: toStatus };
+    this.rows.set(id, next);
+    return next;
   }
 }

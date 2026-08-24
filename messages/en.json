@@ -42,7 +42,16 @@
     "delete_description": "This cannot be undone in v0.1.",
     "save_error": "Could not save changes.",
     "delete_error": "Could not delete note.",
-    "empty_error": "Note content is required."
+    "empty_error": "Note content is required.",
+    "process_button": "Process note",
+    "process_title": "Rewrite as permanent",
+    "process_hint": "Rewrite this fleeting thought as a self-contained permanent note. The identifier and creation date will be preserved.",
+    "process_label": "Permanent content",
+    "process_save": "Save as permanent",
+    "process_cancel": "Cancel",
+    "process_error": "Could not process note.",
+    "processed_toast": "Note processed as permanent.",
+    "status_permanent": "permanent"
   },
   "notFound": {
     "title": "Note not found",
@@ -52,6 +61,7 @@
   "errors": {
     "VALIDATION_ERROR": "Please review the fields and try again.",
     "NOTE_NOT_FOUND": "The requested note was not found.",
+    "NOTE_NOT_PROCESSABLE": "Only inbox notes can be processed.",
     "INVALID_DATE": "Invalid date. Use the YYYY-MM-DD format.",
     "INVALID_TIMEZONE": "Invalid timezone.",
     "DATABASE_UNAVAILABLE": "The database is currently unavailable.",

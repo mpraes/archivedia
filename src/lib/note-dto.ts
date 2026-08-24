@@ -1,4 +1,5 @@
 import type { Note } from "@/domain/note";
+import type { NoteStatus } from "@/domain/note-status";
 
 /**
  * Wire shape for a single note. Mirrors the JSON contract documented
@@ -8,7 +9,7 @@ export interface NoteDto {
   id: string;
   publicId: string;
   content: string;
-  status: "inbox";
+  status: NoteStatus;
   createdAt: string;
   updatedAt: string;
 }

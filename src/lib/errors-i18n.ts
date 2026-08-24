@@ -42,6 +42,7 @@ export function translateErrorSync(
 const errorCodes = {
   VALIDATION_ERROR: true,
   NOTE_NOT_FOUND: true,
+  NOTE_NOT_PROCESSABLE: true,
   INVALID_DATE: true,
   INVALID_TIMEZONE: true,
   DATABASE_UNAVAILABLE: true,

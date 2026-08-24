@@ -88,6 +88,19 @@ export const api = {
   deleteNote(id: string): Promise<null> {
     return sendJson<null>("DELETE", `/notes/${encodeURIComponent(id)}`);
   },
+  /**
+   * Promote an inbox note to permanent by rewriting its content in a single
+   * atomic transition. Server returns 409 NOTE_NOT_PROCESSABLE when the
+   * note is not in `inbox` status, or 404 NOTE_NOT_FOUND when it is
+   * missing or soft-deleted.
+   */
+  processNote(id: string, content: string): Promise<SingleNoteResponse> {
+    return sendJson<SingleNoteResponse>(
+      "POST",
+      `/notes/${encodeURIComponent(id)}/process`,
+      { content },
+    );
+  },
   health(): Promise<{ status: string; service: string; timestamp: string; database: string }> {
     return getJson("/health");
   },

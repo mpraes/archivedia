@@ -42,7 +42,16 @@
     "delete_description": "Esta ação não pode ser desfeita na v0.1.",
     "save_error": "Não foi possível salvar as alterações.",
     "delete_error": "Não foi possível excluir a nota.",
-    "empty_error": "O conteúdo da nota é obrigatório."
+    "empty_error": "O conteúdo da nota é obrigatório.",
+    "process_button": "Processar nota",
+    "process_title": "Reescrever como permanente",
+    "process_hint": "Reescreva este pensamento fugaz como uma nota permanente e autossuficiente. O identificador e a data de criação serão preservados.",
+    "process_label": "Conteúdo permanente",
+    "process_save": "Salvar como permanente",
+    "process_cancel": "Cancelar",
+    "process_error": "Não foi possível processar a nota.",
+    "processed_toast": "Nota processada como permanente.",
+    "status_permanent": "permanente"
   },
   "notFound": {
     "title": "Nota não encontrada",
@@ -52,6 +61,7 @@
   "errors": {
     "VALIDATION_ERROR": "Verifique os campos e tente novamente.",
     "NOTE_NOT_FOUND": "A nota solicitada não foi encontrada.",
+    "NOTE_NOT_PROCESSABLE": "Apenas notas na caixa de entrada podem ser processadas.",
     "INVALID_DATE": "Data inválida. Use o formato AAAA-MM-DD.",
     "INVALID_TIMEZONE": "Fuso horário inválido.",
     "DATABASE_UNAVAILABLE": "O banco de dados está indisponível no momento.",

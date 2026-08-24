@@ -23,6 +23,15 @@ export const updateNoteBodySchema = z.object({
   content: noteContentSchema,
 });
 
+/**
+ * Same shape as update: processing a note rewrites its content while
+ * transitioning it from `inbox` to `permanent`. Schema-level rules are
+ * intentionally identical so the service can reuse them.
+ */
+export const processNoteBodySchema = z.object({
+  content: noteContentSchema,
+});
+
 export const listNotesQuerySchema = z.object({
   date: z.string().optional(),
   timezone: z.string().optional(),
@@ -44,4 +53,5 @@ export function parseDateParam(value: string | undefined): string | undefined {
 
 export type CreateNoteBody = z.infer<typeof createNoteBodySchema>;
 export type UpdateNoteBody = z.infer<typeof updateNoteBodySchema>;
+export type ProcessNoteBody = z.infer<typeof processNoteBodySchema>;
 export type ListNotesQuery = z.infer<typeof listNotesQuerySchema>;

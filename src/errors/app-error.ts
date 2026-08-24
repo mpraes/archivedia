@@ -5,6 +5,7 @@
 export const ErrorCode = {
   VALIDATION_ERROR: "VALIDATION_ERROR",
   NOTE_NOT_FOUND: "NOTE_NOT_FOUND",
+  NOTE_NOT_PROCESSABLE: "NOTE_NOT_PROCESSABLE",
   INVALID_DATE: "INVALID_DATE",
   INVALID_TIMEZONE: "INVALID_TIMEZONE",
   DATABASE_UNAVAILABLE: "DATABASE_UNAVAILABLE",
@@ -64,5 +65,9 @@ export class AppError extends Error {
 
   static databaseUnavailable(message = "Database is unavailable."): AppError {
     return new AppError(ErrorCode.DATABASE_UNAVAILABLE, message, 503);
+  }
+
+  static notProcessable(message = "Only inbox notes can be processed."): AppError {
+    return new AppError(ErrorCode.NOTE_NOT_PROCESSABLE, message, 409);
   }
 }

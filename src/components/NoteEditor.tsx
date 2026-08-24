@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { ApiError, api } from "@/lib/api";
 import { translateErrorSync } from "@/lib/errors-i18n";
@@ -15,7 +15,7 @@ interface NoteEditorProps {
   initialNote: NoteDto;
 }
 
-type Mode = "view" | "edit";
+type Mode = "view" | "edit" | "process";
 
 export function NoteEditor({ initialNote }: NoteEditorProps) {
   const router = useRouter();
@@ -29,6 +29,22 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+  const [confirmationVisible, setConfirmationVisible] = useState(false);
+
+  useEffect(() => {
+    if (!confirmation) {
+      setConfirmationVisible(false);
+      return;
+    }
+    setConfirmationVisible(true);
+    const fadeTimer = window.setTimeout(() => setConfirmationVisible(false), 2300);
+    const clearTimer = window.setTimeout(() => setConfirmation(null), 2600);
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(clearTimer);
+    };
+  }, [confirmation]);
 
   const startEdit = useCallback(() => {
     setDraft(note.content);
@@ -36,7 +52,19 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
     setMode("edit");
   }, [note.content]);
 
+  const startProcess = useCallback(() => {
+    setDraft(note.content);
+    setError(null);
+    setMode("process");
+  }, [note.content]);
+
   const cancelEdit = useCallback(() => {
+    setMode("view");
+    setDraft(note.content);
+    setError(null);
+  }, [note.content]);
+
+  const cancelProcess = useCallback(() => {
     setMode("view");
     setDraft(note.content);
     setError(null);
@@ -63,6 +91,28 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
     }
   }, [draft, note.id, router, t, tErrors]);
 
+  const process = useCallback(async () => {
+    const trimmed = draft.trim();
+    if (trimmed.length === 0) {
+      setError(t("empty_error"));
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const { data } = await api.processNote(note.id, trimmed);
+      setNote(data);
+      setMode("view");
+      setConfirmation(t("processed_toast"));
+      router.refresh();
+    } catch (err) {
+      const message = err instanceof ApiError ? translateErrorSync(err, tErrors) : t("process_error");
+      setError(message);
+    } finally {
+      setSaving(false);
+    }
+  }, [draft, note.id, router, t, tErrors]);
+
   const confirmDelete = useCallback(async () => {
     setConfirmOpen(false);
     try {
@@ -75,6 +125,8 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
     }
   }, [note.id, router, t, tErrors]);
 
+  const canProcess = note.status === "inbox";
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
       <div className="flex items-center justify-end">
@@ -85,9 +137,7 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
         <Link href="/" className="rounded-full px-3 py-1 hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent)]">
           {t("back")}
         </Link>
-        <span className="rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 text-[10px] tracking-[0.18em] text-[var(--color-accent)]">
-          {note.status}
-        </span>
+        <StatusBadge status={note.status} />
       </nav>
 
       <article className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-white/70 p-6 sm:p-8 shadow-[0_1px_0_rgba(0,0,0,0.02),0_12px_30px_-20px_rgba(0,0,0,0.15)]">
@@ -101,7 +151,16 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
             </time>
           </div>
           {mode === "view" ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {canProcess ? (
+                <button
+                  type="button"
+                  onClick={startProcess}
+                  className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--color-accent)]/90"
+                >
+                  {t("process_button")}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={startEdit}
@@ -124,50 +183,50 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
           <p className="mt-5 whitespace-pre-wrap font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)]">
             {note.content}
           </p>
+        ) : mode === "edit" ? (
+          <EditorForm
+            id="edit-note"
+            label={t("edit_label")}
+            draft={draft}
+            onChange={setDraft}
+            onSubmit={save}
+            onCancel={cancelEdit}
+            submitting={saving}
+            error={error}
+            submitLabel={t("save_changes")}
+            submittingLabel={tCommon("saving")}
+            cancelLabel={tCommon("cancel")}
+            errorId="edit-error"
+          />
         ) : (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void save();
-            }}
-            className="mt-5 flex flex-col gap-4"
-          >
-            <label htmlFor="edit-note" className="sr-only">
-              {t("edit_label")}
-            </label>
-            <textarea
-              id="edit-note"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              rows={10}
-              autoFocus
-              aria-invalid={error ? "true" : "false"}
-              aria-describedby={error ? "edit-error" : undefined}
-              className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] focus:border-[var(--color-accent)] focus:bg-white"
-            />
-            {error ? (
-              <p id="edit-error" role="alert" className="text-sm text-[var(--color-warn)]">
-                {error}
-              </p>
-            ) : null}
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
-              >
-                {tCommon("cancel")}
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-60"
-              >
-                {saving ? tCommon("saving") : t("save_changes")}
-              </button>
-            </div>
-          </form>
+          <ProcessForm
+            draft={draft}
+            onChange={setDraft}
+            onSubmit={process}
+            onCancel={cancelProcess}
+            submitting={saving}
+            error={error}
+            heading={t("process_title")}
+            hint={t("process_hint")}
+            label={t("process_label")}
+            submitLabel={t("process_save")}
+            submittingLabel={tCommon("saving")}
+            cancelLabel={tCommon("cancel")}
+          />
         )}
+
+        <div aria-live="polite" className="mt-3 min-h-[1.25rem]">
+          {confirmation && mode === "view" ? (
+            <p
+              className={`inline-flex items-center gap-2 rounded-lg border border-[var(--color-accent)]/15 bg-[var(--color-accent-soft)]/60 px-3 py-2 text-sm font-medium text-[var(--color-accent)] transition-opacity duration-300 ease-out ${
+                confirmationVisible ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+              {confirmation}
+            </p>
+          ) : null}
+        </div>
       </article>
 
       <ConfirmDialog
@@ -181,5 +240,196 @@ export function NoteEditor({ initialNote }: NoteEditorProps) {
         onCancel={() => setConfirmOpen(false)}
       />
     </main>
+  );
+}
+
+interface EditorFormProps {
+  id: string;
+  label: string;
+  draft: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  submitting: boolean;
+  error: string | null;
+  submitLabel: string;
+  submittingLabel: string;
+  cancelLabel: string;
+  errorId: string;
+}
+
+function EditorForm({
+  id,
+  label,
+  draft,
+  onChange,
+  onSubmit,
+  onCancel,
+  submitting,
+  error,
+  submitLabel,
+  submittingLabel,
+  cancelLabel,
+  errorId,
+}: EditorFormProps) {
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!submitting) onSubmit();
+      }}
+      className="mt-5 flex flex-col gap-4"
+    >
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        value={draft}
+        onChange={(event) => onChange(event.target.value)}
+        rows={10}
+        autoFocus
+        aria-invalid={error ? "true" : "false"}
+        aria-describedby={error ? errorId : undefined}
+        className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] focus:border-[var(--color-accent)] focus:bg-white"
+      />
+      {error ? (
+        <p id={errorId} role="alert" className="text-sm text-[var(--color-warn)]">
+          {error}
+        </p>
+      ) : null}
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
+        >
+          {cancelLabel}
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-60"
+        >
+          {submitting ? submittingLabel : submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+interface ProcessFormProps {
+  draft: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  submitting: boolean;
+  error: string | null;
+  heading: string;
+  hint: string;
+  label: string;
+  submitLabel: string;
+  submittingLabel: string;
+  cancelLabel: string;
+}
+
+function ProcessForm({
+  draft,
+  onChange,
+  onSubmit,
+  onCancel,
+  submitting,
+  error,
+  heading,
+  hint,
+  label,
+  submitLabel,
+  submittingLabel,
+  cancelLabel,
+}: ProcessFormProps) {
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        if (!submitting) onSubmit();
+      }
+    },
+    [onSubmit, submitting],
+  );
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!submitting) onSubmit();
+      }}
+      className="mt-5 flex flex-col gap-4"
+    >
+      <header className="flex flex-col gap-1 rounded-r-lg border-l-4 border-[var(--color-accent)] bg-[var(--color-accent-soft)]/40 p-4">
+        <h2 className="font-[var(--font-display)] text-xl text-[var(--color-ink)]">{heading}</h2>
+        <p className="text-sm leading-relaxed text-[var(--color-ink-soft)]">{hint}</p>
+      </header>
+      <label htmlFor="process-note" className="sr-only">
+        {label}
+      </label>
+      <textarea
+        id="process-note"
+        value={draft}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={handleKeyDown}
+        rows={12}
+        autoFocus
+        aria-invalid={error ? "true" : "false"}
+        aria-describedby={error ? "process-error" : undefined}
+        className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] focus:border-[var(--color-accent)] focus:bg-white"
+      />
+      {error ? (
+        <p id="process-error" role="alert" className="text-sm text-[var(--color-warn)]">
+          {error}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm hover:border-[var(--color-ink-soft)]"
+        >
+          {cancelLabel}
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent)]/90 disabled:opacity-60"
+        >
+          {submitting ? submittingLabel : submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+import type { NoteStatus } from "@/domain/note-status";
+
+function StatusBadge({ status }: { status: NoteStatus }) {
+  // Status label is intentionally English-only here; the list already
+  // shows localised labels via i18n. Keep this badge short and scannable
+  // in the note header.
+  const label = status === "permanent" ? "permanent" : status;
+  const tone =
+    status === "permanent"
+      ? "border border-[var(--color-line)] bg-[var(--color-paper)] text-[var(--color-ink-soft)]"
+      : "bg-[var(--color-accent-soft)] text-[var(--color-accent)]";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] motion-safe:transition-colors motion-safe:duration-200 motion-safe:ease-out ${tone}`}
+    >
+      {status === "permanent" ? (
+        <span
+          className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-current opacity-70"
+          aria-hidden="true"
+        />
+      ) : null}
+      {label}
+    </span>
   );
 }

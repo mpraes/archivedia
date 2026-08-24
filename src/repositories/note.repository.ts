@@ -1,4 +1,5 @@
 import type { Note } from "@/domain/note";
+import type { NoteStatus } from "@/domain/note-status";
 
 /**
  * Repository contract for notes. Concrete implementations live next to
@@ -15,4 +16,26 @@ export interface NoteRepository {
     content: string,
     bucketPrefix: string,
   ): Promise<Note | null>;
+  /**
+   * Update content and status atomically. Returns:
+   * - the updated note on success
+   * - null when the note is missing or soft-deleted
+   * - throws NoteNotProcessable when the note exists but is not in `fromStatus`
+   */
+  updateContentAndStatus(
+    id: string,
+    content: string,
+    updatedAt: Date,
+    fromStatus: NoteStatus,
+    toStatus: NoteStatus,
+  ): Promise<Note | null>;
+}
+
+export class NoteNotProcessable extends Error {
+  readonly currentStatus: NoteStatus;
+  constructor(currentStatus: NoteStatus) {
+    super(`NOTE_NOT_PROCESSABLE:${currentStatus}`);
+    this.name = "NoteNotProcessable";
+    this.currentStatus = currentStatus;
+  }
 }

@@ -1,7 +1,8 @@
 import { Prisma, type Note as PrismaNote } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { Note } from "@/domain/note";
-import type { NoteRepository } from "./note.repository";
+import type { NoteStatus } from "@/domain/note-status";
+import { NoteNotProcessable, type NoteRepository } from "./note.repository";
 
 /**
  * Postgres-backed implementation of NoteRepository. Maps Prisma's row
@@ -90,5 +91,33 @@ export class PostgresNoteRepository implements NoteRepository {
       },
     });
     return row ? toDomain(row) : null;
+  }
+
+  async updateContentAndStatus(
+    id: string,
+    content: string,
+    updatedAt: Date,
+    fromStatus: NoteStatus,
+    toStatus: NoteStatus,
+  ): Promise<Note | null> {
+    try {
+      const row = await prisma.note.update({
+        where: { id, deletedAt: null, status: fromStatus },
+        data: { content, status: toStatus, updatedAt },
+      });
+      return toDomain(row);
+    } catch (err) {
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2025") {
+        throw err;
+      }
+      // P2025: row didn't match the where clause. Distinguish "missing/deleted"
+      // from "wrong status" so callers can return 404 vs 409.
+      const existing = await prisma.note.findUnique({
+        where: { id },
+        select: { status: true, deletedAt: true },
+      });
+      if (!existing || existing.deletedAt !== null) return null;
+      throw new NoteNotProcessable(existing.status);
+    }
   }
 }
