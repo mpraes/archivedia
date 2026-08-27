@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "@tailwindcss/postcss": "^4",
     "@xyflow/react": "^12.11.5",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
@@ -30,12 +31,12 @@
     "react-dom": "19.1.0",
     "stripe": "^22.5.0",
     "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
@@ -46,7 +47,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.22",
     "prisma": "^6.19.3",
-    "tailwindcss": "^4",
     "tsx": "^4.23.7",
     "typescript": "^5",
     "vitest": "^4.1.10"
