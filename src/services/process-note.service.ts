@@ -1,5 +1,6 @@
 import type { Note } from "@/domain/note";
 import { AppError } from "@/errors/app-error";
+import { logDbFailure } from "@/lib/logger";
 import { extractLinkedNoteIds } from "@/lib/note-links";
 import { NoteNotProcessable } from "@/repositories/note.repository";
 import type { NoteServiceDeps } from "./dependencies";
@@ -37,6 +38,7 @@ export async function processNote(
   } catch (err) {
     if (err instanceof AppError) throw err;
     if (err instanceof NoteNotProcessable) throw AppError.notProcessable();
+    logDbFailure({ component: "process_note", op: "update_status", err, noteId: id });
     throw AppError.databaseUnavailable();
   }
 }

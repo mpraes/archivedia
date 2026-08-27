@@ -1,10 +1,17 @@
 import type { NextRequest } from "next/server";
 import { toErrorResponse } from "@/errors/error-handler";
-import { processNoteBodySchema, updateNoteBodySchema } from "@/schemas/note.schema";
+import {
+  deferReviewBodySchema,
+  makePermanentBodySchema,
+  processNoteBodySchema,
+  updateNoteBodySchema,
+} from "@/schemas/note.schema";
+import { deferReview } from "@/services/defer-review.service";
 import { deleteNote } from "@/services/delete-note.service";
 import { getNote } from "@/services/get-note.service";
 import { getBacklinks } from "@/services/backlinks.service";
 import { getNoteServiceDeps } from "@/services/dependencies";
+import { makePermanent } from "@/services/make-permanent.service";
 import { processNote } from "@/services/process-note.service";
 import { updateNote } from "@/services/update-note.service";
 import { noteDto } from "@/lib/note-dto";
@@ -62,6 +69,44 @@ export async function POST_PROCESS(req: NextRequest, ctx: RouteParams): Promise<
       getNoteServiceDeps(),
       noteIdFromParams({ noteId }),
       body.content,
+    );
+    return Response.json({ data: noteDto(note) });
+  } catch (err) {
+    return toErrorResponse(err);
+  }
+}
+
+export async function POST_MAKE_PERMANENT(
+  req: NextRequest,
+  ctx: RouteParams,
+): Promise<Response> {
+  try {
+    const { noteId } = await ctx.params;
+    const body = makePermanentBodySchema.parse(await req.json().catch(() => ({})));
+    const note = await makePermanent(
+      getNoteServiceDeps(),
+      noteIdFromParams({ noteId }),
+      body.content,
+      body.whyItMatters ?? null,
+    );
+    return Response.json({ data: noteDto(note) });
+  } catch (err) {
+    return toErrorResponse(err);
+  }
+}
+
+export async function POST_DEFER_REVIEW(
+  req: NextRequest,
+  ctx: RouteParams,
+): Promise<Response> {
+  try {
+    const { noteId } = await ctx.params;
+    const body = deferReviewBodySchema.parse(await req.json().catch(() => ({})));
+    const note = await deferReview(
+      getNoteServiceDeps(),
+      noteIdFromParams({ noteId }),
+      new Date(body.nextReviewAt),
+      body.reason ?? null,
     );
     return Response.json({ data: noteDto(note) });
   } catch (err) {

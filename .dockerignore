@@ -1,0 +1,28 @@
+# Build artefacts
+node_modules
+.next
+.git
+.gitignore
+*.tsbuildinfo
+coverage
+.nyc_output
+
+# Local environment and runtime data
+.env.local
+.env.*.local
+docker-compose.override.yml
+
+# Tests
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+tests
+docs
+.eslintcache
+
+# Editor / OS noise
+.DS_Store
+.idea
+.vscode
+*.log

@@ -1,5 +1,6 @@
 import type { Note } from "@/domain/note";
 import { AppError } from "@/errors/app-error";
+import { logDbFailure } from "@/lib/logger";
 import { extractLinkedNoteIds } from "@/lib/note-links";
 import { formatPublicIdStem, minuteBucket } from "@/lib/public-note-id";
 import { normaliseTags } from "@/lib/note-links";
@@ -22,7 +23,7 @@ import type { NoteServiceDeps } from "./dependencies";
 export async function createNote(
   deps: NoteServiceDeps,
   content: string,
-  options: { tags?: string[] } = {},
+  options: { tags?: string[]; whyItMatters?: string | null } = {},
   now: Date = new Date(),
 ): Promise<Note> {
   const bucket = minuteBucket(now, deps.timezone);
@@ -41,21 +42,25 @@ export async function createNote(
     return await deps.repository.insert({
       publicId,
       content,
+      whyItMatters: options.whyItMatters ?? null,
       linkedNoteIds,
       tags,
       createdAt: now,
     });
-  } catch {
+  } catch (err) {
+    logDbFailure({ component: "create_note", op: "insert", err, publicId });
     const fallback = `${publicId}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     try {
       return await deps.repository.insert({
         publicId: fallback,
         content,
+        whyItMatters: options.whyItMatters ?? null,
         linkedNoteIds,
         tags,
         createdAt: now,
       });
-    } catch {
+    } catch (fallbackErr) {
+      logDbFailure({ component: "create_note", op: "insert_fallback", err: fallbackErr, fallback });
       throw AppError.databaseUnavailable();
     }
   }

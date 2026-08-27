@@ -75,5 +75,9 @@ docker compose up -d
 ```
 
 The compose file reuses the homelab Postgres defined in `.env` and does not
-spin up its own database. Backups live in the homelab's `pg_dump` schedule; no
-extra backup logic is required for v0.1.
+spin up its own database.
+
+### Backups
+
+Daily `pg_dump`, retention, and quarterly restore drills are documented in
+[`docs/backup.md`](docs/backup.md).

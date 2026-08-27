@@ -20,6 +20,12 @@
     "save_button": "Save note",
     "save_error": "Could not save note."
   },
+  "why": {
+    "title": "Why does this matter?",
+    "label": "Why this note matters",
+    "placeholder": "What does this teach you? What changes if you forget?",
+    "optional_hint": "Optional"
+  },
   "today": {
     "label_today": "Today",
     "label_viewing": "Viewing",
@@ -81,6 +87,69 @@
     "tag_clear": "Clear tag filter",
     "recent": "Recently processed"
   },
+  "aging": {
+    "captured_today": "Captured today",
+    "captured_yesterday": "Captured yesterday",
+    "captured_days_ago": "Captured {count} days ago",
+    "needs_review": "Needs review",
+    "status_inbox": "inbox",
+    "status_deleted": "deleted",
+    "review_alt": "Waiting for review"
+  },
+  "review": {
+    "title": "Review",
+    "intro_heading": "Notes requiring review",
+    "queue_empty_title": "Nothing waiting for review",
+    "queue_empty_description": "Inbox notes appear here after 48 hours so they don't pile up.",
+    "ready_count_one": "{count, plural, one {# note has been waiting} other {# notes have been waiting}} for 2+ days.",
+    "start_button": "Start review",
+    "waiting_label": "Waiting for review",
+    "waiting_days_one": "{count, plural, one {# day} other {# days}}",
+    "card_progress": "Review note · {current} of {total}",
+    "captured_on": "Captured on {date} · {time}",
+    "waiting_for": "Waiting for review: {value}",
+    "waiting_days_value": "{count, plural, one {# day} other {# days}}",
+    "why_it_matters_heading": "Why it matters",
+    "alert_message_one": "{count, plural, one {You have # note ready for review.} other {You have # notes ready for review.}}",
+    "alert_review_now": "Review now",
+    "alert_later": "Later",
+    "prompts": {
+      "keep_permanent": "What should happen to this note?",
+      "make_permanent_title": "Keep as permanent",
+      "make_permanent_hint": "Rewrite this fleeting thought as a self-contained permanent note. The identifier and creation date will be preserved.",
+      "make_permanent_title_label": "Permanent title",
+      "make_permanent_content_label": "Permanent content",
+      "make_permanent_why_label": "Why it matters (optional)",
+      "make_permanent_save": "Save as permanent",
+      "make_permanent_cancel": "Cancel",
+      "defer_title": "Keep in Inbox",
+      "defer_subtitle": "Remind me again:",
+      "defer_tomorrow": "Tomorrow",
+      "defer_in_3_days": "In 3 days",
+      "defer_next_week": "Next week",
+      "defer_reason_label": "Optional reason",
+      "defer_save": "Keep for later",
+      "delete_title": "Delete this note?",
+      "delete_description": "This will remove the note from your active archive.",
+      "delete_confirm": "Delete note",
+      "delete_cancel": "Cancel",
+      "defer_custom_label": "Choose date",
+      "progress_done": "Queue empty",
+      "progress_done_description": "You reviewed every waiting note. Nice work.",
+      "back_to_queue": "Back to review queue"
+    },
+    "actions": {
+      "keep_permanent": "Keep as permanent",
+      "add_to_project": "Add to a project",
+      "keep_in_inbox": "Keep in Inbox",
+      "delete": "Delete note"
+    },
+    "errors": {
+      "save_permanent": "Could not save this note as permanent.",
+      "defer": "Could not defer this note.",
+      "delete": "Could not delete this note."
+    }
+  },
   "theme": {
     "light": "Light theme",
     "dark": "Dark theme",
@@ -104,5 +173,78 @@
     "label": "Language",
     "pt-BR": "Português",
     "en": "English"
+  },
+  "nav": {
+    "today": "Today",
+    "review": "Review",
+    "notes": "Notes",
+    "spaces": "Spaces",
+    "brand": "Archivedia"
+  },
+  "spaces": {
+    "title": "Spaces",
+    "new_button": "New space",
+    "empty_title": "No Spaces yet",
+    "empty_description": "Spaces help you gather notes around a project, topic, or article.",
+    "note_count_one": "{count, plural, one {# note} other {# notes}}",
+    "last_updated": "Last updated {when}",
+    "updated_today": "today",
+    "updated_yesterday": "yesterday",
+    "updated_days_ago_one": "{count, plural, one {# day ago} other {# days ago}}",
+    "form_title_label": "Title",
+    "form_description_label": "Description (optional)",
+    "form_create": "Create space",
+    "form_cancel": "Cancel",
+    "errors": {
+      "create": "Could not create the Space."
+    },
+    "detail": {
+      "back": "← Spaces",
+      "tabs": {
+        "notes": "Notes",
+        "canvas": "Canvas",
+        "outline": "Outline"
+      },
+      "notes_empty": "No notes in this Space yet.",
+      "notes_section_permanent": "Permanent",
+      "notes_section_inbox": "Inbox",
+      "add_existing_button": "Add existing note",
+      "add_existing_placeholder": "Search notes by content…",
+      "add_existing_submit": "Attach",
+      "add_existing_empty": "No notes match that search.",
+      "create_note_button": "Create note",
+      "create_note_placeholder": "Write a new note for this Space…",
+      "create_note_submit": "Create note",
+      "errors": {
+        "attach": "Could not attach that note.",
+        "create_note": "Could not create the note.",
+        "remove": "Could not remove the note from this Space."
+      },
+      "remove_button": "Remove from Space"
+    },
+    "canvas": {
+      "empty_title": "Empty canvas",
+      "empty_description": "Drop a note card here, or add a free-text card to start structuring an idea.",
+      "add_note_button": "Add note card",
+      "add_text_button": "Add text card",
+      "text_card_placeholder": "Type a question, hypothesis, or title…",
+      "card_status_permanent": "Permanent",
+      "card_status_inbox": "Inbox",
+      "card_status_deleted": "Deleted",
+      "open_note": "Open note",
+      "remove_from_canvas": "Remove from canvas",
+      "bring_to_front": "Bring to front",
+      "edit": "Edit",
+      "search_notes_placeholder": "Search notes…",
+      "no_notes_found": "No notes match that search.",
+      "add_note_title": "Add a note card",
+      "add_text_title": "Add a text card",
+      "errors": {
+        "save_layout": "Could not save the layout.",
+        "add_node": "Could not add the card.",
+        "add_edge": "Could not connect the cards.",
+        "remove": "Could not remove the card."
+      }
+    }
   }
 }

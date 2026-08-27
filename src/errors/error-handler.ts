@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { logRequestError } from "@/lib/logger";
 import { AppError, ErrorCode } from "./app-error";
-
-const logger = {
-  error(message: string, context?: Record<string, unknown>): void {
-    // Structured single-line JSON so log shippers can parse without extra config.
-    const payload = { level: "error", message, ...context, ts: new Date().toISOString() };
-    console.error(JSON.stringify(payload));
-  },
-};
 
 /**
  * Convert any thrown value into the canonical error envelope. Unknown errors
@@ -41,7 +34,7 @@ export function toErrorResponse(err: unknown): NextResponse {
     );
   }
 
-  logger.error("Unhandled error in route handler", {
+  logRequestError({
     detail: err instanceof Error ? err.message : String(err),
     stack: err instanceof Error ? err.stack : undefined,
   });

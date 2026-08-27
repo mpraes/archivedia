@@ -1,8 +1,11 @@
 /**
- * Note status. v0.1 only persists `inbox`; the union documents the
- * future-proof shape so later releases can extend it without churn.
+ * Note status.
  *
- * `'permanent'` is reserved for the v0.2 inbox-review workflow that
- * promotes a fleeting inbox note into a self-contained permanent note.
+ * - `inbox` is the default capture bucket (FR-01).
+ * - `permanent` is the durable archive promoted via review.
+ * - `deleted` is a soft-delete sentinel paired with `deletedAt`. Listing
+ *   queries already filter on `deletedAt IS NULL`, so the value is mostly
+ *   a documentation aid for clients and for future "Recently deleted"
+ *   tooling (requirements_v2, §"Decisão 4").
  */
-export type NoteStatus = "inbox" | "permanent";
+export type NoteStatus = "inbox" | "permanent" | "deleted";

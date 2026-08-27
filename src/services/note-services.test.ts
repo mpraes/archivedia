@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setNoteServiceDeps } from "@/services/dependencies";
 import { InMemoryNoteRepository } from "@/repositories/in-memory-note.repository";
+import { InMemorySpaceRepository, InMemorySpaceNoteRepository } from "@/repositories/in-memory-space.repository";
+import { InMemoryCanvasRepository } from "@/repositories/in-memory-canvas.repository";
 import { createNote } from "@/services/create-note.service";
 import { getNote } from "@/services/get-note.service";
 import { listDailyNotes } from "@/services/list-daily-notes.service";
@@ -9,7 +11,7 @@ import { deleteNote } from "@/services/delete-note.service";
 import { AppError } from "@/errors/app-error";
 
 const TIMEZONE = "America/Sao_Paulo";
-const depsFor = () => ({ repository: new InMemoryNoteRepository(), timezone: TIMEZONE });
+const depsFor = () => ({ repository: new InMemoryNoteRepository(), spaceRepository: new InMemorySpaceRepository(), spaceNoteRepository: new InMemorySpaceNoteRepository(), canvasRepository: new InMemoryCanvasRepository(), timezone: TIMEZONE });
 
 describe("note services", () => {
   beforeEach(() => setNoteServiceDeps(null));

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import { TopNav } from "@/components/TopNav";
 import { themeInitScript } from "@/components/ThemeToggle";
 import "./globals.css";
 
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           >
             {tCommon("skip_link")}
           </a>
+          <TopNav />
           {children}
         </NextIntlClientProvider>
       </body>

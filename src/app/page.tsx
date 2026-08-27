@@ -1,4 +1,5 @@
 import { listDailyNotes } from "@/services/list-daily-notes.service";
+import { listReviewQueue } from "@/services/review-queue.service";
 import { getNoteServiceDeps } from "@/services/dependencies";
 import { todayDateString } from "@/lib/format";
 import { noteDto } from "@/lib/note-dto";
@@ -33,7 +34,13 @@ export default async function TodayPage({ searchParams }: PageProps) {
   const tag = typeof params.tag === "string" && params.tag.trim().length > 0 ? params.tag.trim() : undefined;
 
   const deps = getNoteServiceDeps();
-  const result = await listDailyNotes(deps, { date, status, q, tag });
+  // FR-28: the alert banner on Today needs the current Review queue
+  // size. Fetch it once in parallel with the day listing so we don't
+  // pay for a serial roundtrip on the most common page.
+  const [result, review] = await Promise.all([
+    listDailyNotes(deps, { date, status, q, tag }),
+    listReviewQueue(deps, { limit: 1 }).then((r) => r.total).catch(() => 0),
+  ]);
   const notes = result.notes.map(noteDto);
   const timezone = result.timezone;
 
@@ -44,6 +51,7 @@ export default async function TodayPage({ searchParams }: PageProps) {
       timezone={timezone}
       initialNotes={notes}
       activeFilters={{ q, status, tag }}
+      reviewReadyCount={review}
     />
   );
 }

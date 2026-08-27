@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setNoteServiceDeps } from "@/services/dependencies";
 import { InMemoryNoteRepository } from "@/repositories/in-memory-note.repository";
+import { InMemorySpaceRepository, InMemorySpaceNoteRepository } from "@/repositories/in-memory-space.repository";
+import { InMemoryCanvasRepository } from "@/repositories/in-memory-canvas.repository";
 import { createNote } from "@/services/create-note.service";
 import { updateNote } from "@/services/update-note.service";
 import { processNote } from "@/services/process-note.service";
 import { getBacklinks } from "@/services/backlinks.service";
 
 const TIMEZONE = "America/Sao_Paulo";
-const depsFor = () => ({ repository: new InMemoryNoteRepository(), timezone: TIMEZONE });
+const depsFor = () => ({ repository: new InMemoryNoteRepository(), spaceRepository: new InMemorySpaceRepository(), spaceNoteRepository: new InMemorySpaceNoteRepository(), canvasRepository: new InMemoryCanvasRepository(), timezone: TIMEZONE });
 
 describe("wiki-links + backlinks (v0.4)", () => {
   beforeEach(() => setNoteServiceDeps(null));

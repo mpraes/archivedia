@@ -20,6 +20,12 @@
     "save_button": "Salvar nota",
     "save_error": "Não foi possível salvar a nota."
   },
+  "why": {
+    "title": "Por que isso importa?",
+    "label": "Por que esta nota importa",
+    "placeholder": "O que essa nota te ensina? O que muda se você esquecer?",
+    "optional_hint": "Opcional"
+  },
   "today": {
     "label_today": "Hoje",
     "label_viewing": "Visualizando",
@@ -81,6 +87,69 @@
     "tag_clear": "Limpar filtro de tag",
     "recent": "Recém-processadas"
   },
+  "aging": {
+    "captured_today": "Capturada hoje",
+    "captured_yesterday": "Capturada ontem",
+    "captured_days_ago": "Capturada há {count} dias",
+    "needs_review": "Precisa de revisão",
+    "status_inbox": "entrada",
+    "status_deleted": "excluída",
+    "review_alt": "Aguardando revisão"
+  },
+  "review": {
+    "title": "Revisão",
+    "intro_heading": "Notas aguardando revisão",
+    "queue_empty_title": "Nada aguardando revisão",
+    "queue_empty_description": "Notas da inbox aparecem aqui depois de 48 horas para não se acumularem.",
+    "ready_count_one": "{count, plural, one {# nota aguarda} other {# notas aguardam}} há 2+ dias.",
+    "start_button": "Iniciar revisão",
+    "waiting_label": "Aguardando revisão",
+    "waiting_days_one": "{count, plural, one {# dia} other {# dias}}",
+    "card_progress": "Revisando nota · {current} de {total}",
+    "captured_on": "Capturada em {date} · {time}",
+    "waiting_for": "Aguardando revisão: {value}",
+    "waiting_days_value": "{count, plural, one {# dia} other {# dias}}",
+    "why_it_matters_heading": "Por que importa",
+    "alert_message_one": "{count, plural, one {Você tem # nota aguardando revisão.} other {Você tem # notas aguardando revisão.}}",
+    "alert_review_now": "Revisar agora",
+    "alert_later": "Mais tarde",
+    "prompts": {
+      "keep_permanent": "O que fazer com esta nota?",
+      "make_permanent_title": "Manter como permanente",
+      "make_permanent_hint": "Reescreva este pensamento fugaz como uma nota permanente e autossuficiente. O identificador e a data de criação serão preservados.",
+      "make_permanent_title_label": "Título permanente",
+      "make_permanent_content_label": "Conteúdo permanente",
+      "make_permanent_why_label": "Por que importa (opcional)",
+      "make_permanent_save": "Salvar como permanente",
+      "make_permanent_cancel": "Cancelar",
+      "defer_title": "Manter na Inbox",
+      "defer_subtitle": "Lembre-me novamente em:",
+      "defer_tomorrow": "Amanhã",
+      "defer_in_3_days": "Em 3 dias",
+      "defer_next_week": "Próxima semana",
+      "defer_reason_label": "Motivo (opcional)",
+      "defer_save": "Adiar",
+      "delete_title": "Excluir esta nota?",
+      "delete_description": "A nota será removida do seu arquivo ativo.",
+      "delete_confirm": "Excluir nota",
+      "delete_cancel": "Cancelar",
+      "defer_custom_label": "Escolher data",
+      "progress_done": "Fila vazia",
+      "progress_done_description": "Você revisou todas as notas aguardando. Bom trabalho.",
+      "back_to_queue": "Voltar para a fila"
+    },
+    "actions": {
+      "keep_permanent": "Manter como permanente",
+      "add_to_project": "Adicionar a um projeto",
+      "keep_in_inbox": "Manter na Inbox",
+      "delete": "Excluir nota"
+    },
+    "errors": {
+      "save_permanent": "Não foi possível salvar esta nota como permanente.",
+      "defer": "Não foi possível adiar esta nota.",
+      "delete": "Não foi possível excluir esta nota."
+    }
+  },
   "theme": {
     "light": "Tema claro",
     "dark": "Tema escuro",
@@ -104,5 +173,78 @@
     "label": "Idioma",
     "pt-BR": "Português",
     "en": "English"
+  },
+  "nav": {
+    "today": "Hoje",
+    "review": "Revisão",
+    "notes": "Notas",
+    "spaces": "Espaços",
+    "brand": "Archivedia"
+  },
+  "spaces": {
+    "title": "Espaços",
+    "new_button": "Novo espaço",
+    "empty_title": "Nenhum Espaço ainda",
+    "empty_description": "Espaços ajudam você a reunir notas em torno de um projeto, tema ou artigo.",
+    "note_count_one": "{count, plural, one {# nota} other {# notas}}",
+    "last_updated": "Atualizado {when}",
+    "updated_today": "hoje",
+    "updated_yesterday": "ontem",
+    "updated_days_ago_one": "{count, plural, one {há # dia} other {há # dias}}",
+    "form_title_label": "Título",
+    "form_description_label": "Descrição (opcional)",
+    "form_create": "Criar espaço",
+    "form_cancel": "Cancelar",
+    "errors": {
+      "create": "Não foi possível criar o Espaço."
+    },
+    "detail": {
+      "back": "← Espaços",
+      "tabs": {
+        "notes": "Notas",
+        "canvas": "Tela",
+        "outline": "Esboço"
+      },
+      "notes_empty": "Nenhuma nota neste Espaço ainda.",
+      "notes_section_permanent": "Permanentes",
+      "notes_section_inbox": "Entrada",
+      "add_existing_button": "Adicionar nota existente",
+      "add_existing_placeholder": "Buscar notas pelo conteúdo…",
+      "add_existing_submit": "Vincular",
+      "add_existing_empty": "Nenhuma nota corresponde à busca.",
+      "create_note_button": "Criar nota",
+      "create_note_placeholder": "Escreva uma nova nota para este Espaço…",
+      "create_note_submit": "Criar nota",
+      "errors": {
+        "attach": "Não foi possível vincular essa nota.",
+        "create_note": "Não foi possível criar a nota.",
+        "remove": "Não foi possível remover a nota deste Espaço."
+      },
+      "remove_button": "Remover do Espaço"
+    },
+    "canvas": {
+      "empty_title": "Tela vazia",
+      "empty_description": "Solte um cartão de nota aqui, ou adicione um cartão de texto para começar a estruturar uma ideia.",
+      "add_note_button": "Adicionar cartão de nota",
+      "add_text_button": "Adicionar cartão de texto",
+      "text_card_placeholder": "Digite uma pergunta, hipótese ou título…",
+      "card_status_permanent": "Permanente",
+      "card_status_inbox": "Entrada",
+      "card_status_deleted": "Excluída",
+      "open_note": "Abrir nota",
+      "remove_from_canvas": "Remover da tela",
+      "bring_to_front": "Trazer para frente",
+      "edit": "Editar",
+      "search_notes_placeholder": "Buscar notas…",
+      "no_notes_found": "Nenhuma nota corresponde à busca.",
+      "add_note_title": "Adicionar cartão de nota",
+      "add_text_title": "Adicionar cartão de texto",
+      "errors": {
+        "save_layout": "Não foi possível salvar o layout.",
+        "add_node": "Não foi possível adicionar o cartão.",
+        "add_edge": "Não foi possível conectar os cartões.",
+        "remove": "Não foi possível remover o cartão."
+      }
+    }
   }
 }

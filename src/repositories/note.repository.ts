@@ -16,6 +16,8 @@ export interface NoteRepository {
   insert(input: {
     publicId: string;
     content: string;
+    /** Optional first-class "Why does this matter?" answer (v0.7). */
+    whyItMatters?: string | null;
     linkedNoteIds: string[];
     tags: string[];
     createdAt: Date;
@@ -23,6 +25,10 @@ export interface NoteRepository {
   findActiveById(id: string): Promise<Note | null>;
   findActiveByPublicId(publicId: string): Promise<Note | null>;
   listByDay(start: Date, end: Date, limit: number): Promise<Note[]>;
+  /**
+   * Soft-delete: sets both `status = 'deleted'` and `deletedAt = now`.
+   * Returns true when the row existed and was not already deleted.
+   */
   softDelete(id: string, deletedAt: Date): Promise<boolean>;
   countByPublicIdPrefix(prefix: string): Promise<number>;
   findActiveByContentInBucketPrefix(
@@ -52,6 +58,35 @@ export interface NoteRepository {
     toStatus: NoteStatus,
   ): Promise<Note | null>;
   /**
+   * FR-32 / FR-36: promote an inbox note to permanent from the Review
+   * page. Sets content + whyItMatters + processedAt + lastReviewedAt,
+   * bumps reviewCount, and flips status to `permanent` — all atomically.
+   * Returns null when the note is missing/deleted, throws
+   * NoteNotProcessable when it is not currently in `inbox`.
+   */
+  promoteToPermanent(input: {
+    id: string;
+    content: string;
+    linkedNoteIds: string[];
+    whyItMatters: string | null;
+    processedAt: Date;
+    lastReviewedAt: Date;
+    updatedAt: Date;
+  }): Promise<Note | null>;
+  /**
+   * FR-34: keep the note in the inbox but bump `nextReviewAt` so it
+   * exits the queue until that deadline. Stamps `lastReviewedAt`,
+   * bumps `reviewCount`, and leaves content/status untouched. Returns
+   * null when the note is missing/deleted, throws NoteNotProcessable
+   * when the note is not currently in `inbox`.
+   */
+  deferReview(input: {
+    id: string;
+    nextReviewAt: Date;
+    lastReviewedAt: Date;
+    updatedAt: Date;
+  }): Promise<Note | null>;
+  /**
    * Cross-day, multi-filter list. `q` matches content via ILIKE, `status`
    * narrows by note status, `tag` narrows by tag membership. When no
    * filter is provided, returns `limit` notes ordered by createdAt DESC.
@@ -67,6 +102,15 @@ export interface NoteRepository {
    * Used by the backlinks panel to surface inbound references.
    */
   findBacklinks(targetPublicId: string, limit: number): Promise<Note[]>;
+  /**
+   * FR-30 / FR-31: inbox notes that pass the 48-hour review gate
+   * (status = inbox AND createdAt <= now - 48h AND
+   *  (nextReviewAt IS NULL OR nextReviewAt <= now) AND deletedAt IS NULL),
+   * oldest first so the most overdue note comes up first in the queue.
+   */
+  listReviewQueue(input: { limit: number; now: Date }): Promise<Note[]>;
+  /** Total size of the review queue (no limit). Cheap COUNT(*) query. */
+  countReviewQueue(now: Date): Promise<number>;
 }
 
 export class NoteNotProcessable extends Error {

@@ -1,8 +1,31 @@
 import { Prisma, Prisma as PrismaNS, type Note as PrismaNote } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { logDbFailure } from "@/lib/logger";
+import { reviewGate } from "@/lib/format";
 import type { Note } from "@/domain/note";
 import type { NoteStatus } from "@/domain/note-status";
 import { NoteNotProcessable, type NotePatch, type NoteRepository } from "./note.repository";
+
+/** Trim whitespace; treat empty strings as "no answer". Keeps null as
+ *  null so existing rows stay untouched by accidental empty strings. */
+function normaliseWhyItMatters(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+/** Shared WHERE clause for review-queue queries. Mirrors the
+ *  `requiresReview()` predicate in lib/format.ts so DB-side filtering
+ *  and JS-side filtering agree on the rule. */
+function reviewWhere(now: Date): PrismaNS.NoteWhereInput {
+  const gate = reviewGate(now);
+  return {
+    deletedAt: null,
+    status: "inbox",
+    createdAt: { lte: gate.earliestCreatedAt },
+    OR: [{ nextReviewAt: null }, { nextReviewAt: { lte: now } }],
+  };
+}
 
 /**
  * Postgres-backed implementation of NoteRepository. Maps Prisma's row
@@ -14,11 +37,16 @@ function toDomain(row: PrismaNote): Note {
     id: row.id,
     publicId: row.publicId,
     content: row.content,
+    whyItMatters: row.whyItMatters ?? null,
     status: row.status,
     linkedNoteIds: row.linkedNoteIds,
     tags: row.tags,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    processedAt: row.processedAt,
+    lastReviewedAt: row.lastReviewedAt,
+    nextReviewAt: row.nextReviewAt,
+    reviewCount: row.reviewCount,
     deletedAt: row.deletedAt,
   };
 }
@@ -27,21 +55,28 @@ export class PostgresNoteRepository implements NoteRepository {
   async insert(input: {
     publicId: string;
     content: string;
+    whyItMatters?: string | null;
     linkedNoteIds: string[];
     tags: string[];
     createdAt: Date;
   }): Promise<Note> {
-    const row = await prisma.note.create({
-      data: {
-        publicId: input.publicId,
-        content: input.content,
-        linkedNoteIds: input.linkedNoteIds,
-        tags: input.tags,
-        createdAt: input.createdAt,
-        updatedAt: input.createdAt,
-      },
-    });
-    return toDomain(row);
+    try {
+      const row = await prisma.note.create({
+        data: {
+          publicId: input.publicId,
+          content: input.content,
+          whyItMatters: normaliseWhyItMatters(input.whyItMatters),
+          linkedNoteIds: input.linkedNoteIds,
+          tags: input.tags,
+          createdAt: input.createdAt,
+          updatedAt: input.createdAt,
+        },
+      });
+      return toDomain(row);
+    } catch (err) {
+      logDbFailure({ op: "insert", err, publicId: input.publicId });
+      throw err;
+    }
   }
 
   async findActiveById(id: string): Promise<Note | null> {
@@ -67,14 +102,6 @@ export class PostgresNoteRepository implements NoteRepository {
     return rows.map(toDomain);
   }
 
-  async softDelete(id: string, deletedAt: Date): Promise<boolean> {
-    const result = await prisma.note.updateMany({
-      where: { id, deletedAt: null },
-      data: { deletedAt },
-    });
-    return result.count > 0;
-  }
-
   async countByPublicIdPrefix(prefix: string): Promise<number> {
     return prisma.note.count({
       where: { publicId: { startsWith: prefix } },
@@ -93,6 +120,17 @@ export class PostgresNoteRepository implements NoteRepository {
       },
     });
     return row ? toDomain(row) : null;
+  }
+
+  async softDelete(id: string, deletedAt: Date): Promise<boolean> {
+    // Flip both columns atomically: the timestamp hides the row from
+    // listing queries, and the status enum value makes the soft-delete
+    // legible to clients without a join on `deleted_at`.
+    const result = await prisma.note.updateMany({
+      where: { id, deletedAt: null },
+      data: { deletedAt, status: "deleted" },
+    });
+    return result.count > 0;
   }
 
   async patchNote(id: string, patch: NotePatch, updatedAt: Date): Promise<Note | null> {
@@ -116,6 +154,7 @@ export class PostgresNoteRepository implements NoteRepository {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
         return null;
       }
+      logDbFailure({ op: "patchNote", err, noteId: id });
       throw err;
     }
   }
@@ -136,6 +175,7 @@ export class PostgresNoteRepository implements NoteRepository {
       return toDomain(row);
     } catch (err) {
       if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2025") {
+        logDbFailure({ op: "updateContentAndStatus", err, noteId: id });
         throw err;
       }
       // P2025: row didn't match the where clause. Distinguish "missing/deleted"
@@ -180,5 +220,89 @@ export class PostgresNoteRepository implements NoteRepository {
       take: limit,
     });
     return rows.map(toDomain);
+  }
+
+  async listReviewQueue(input: { limit: number; now: Date }): Promise<Note[]> {
+    const rows = await prisma.note.findMany({
+      where: reviewWhere(input.now),
+      // Oldest first so the most overdue note comes up first.
+      orderBy: { createdAt: "asc" },
+      take: input.limit,
+    });
+    return rows.map(toDomain);
+  }
+
+  async countReviewQueue(now: Date): Promise<number> {
+    return prisma.note.count({ where: reviewWhere(now) });
+  }
+
+  async promoteToPermanent(input: {
+    id: string;
+    content: string;
+    linkedNoteIds: string[];
+    whyItMatters: string | null;
+    processedAt: Date;
+    lastReviewedAt: Date;
+    updatedAt: Date;
+  }): Promise<Note | null> {
+    try {
+      const row = await prisma.note.update({
+        where: { id: input.id, deletedAt: null, status: "inbox" },
+        data: {
+          content: input.content,
+          linkedNoteIds: input.linkedNoteIds,
+          whyItMatters: input.whyItMatters,
+          status: "permanent",
+          processedAt: input.processedAt,
+          lastReviewedAt: input.lastReviewedAt,
+          updatedAt: input.updatedAt,
+          reviewCount: { increment: 1 },
+        },
+      });
+      return toDomain(row);
+    } catch (err) {
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2025") {
+        logDbFailure({ op: "promoteToPermanent", err, noteId: input.id });
+        throw err;
+      }
+      // Same 404/409 split as updateContentAndStatus.
+      const existing = await prisma.note.findUnique({
+        where: { id: input.id },
+        select: { status: true, deletedAt: true },
+      });
+      if (!existing || existing.deletedAt !== null) return null;
+      throw new NoteNotProcessable(existing.status);
+    }
+  }
+
+  async deferReview(input: {
+    id: string;
+    nextReviewAt: Date;
+    lastReviewedAt: Date;
+    updatedAt: Date;
+  }): Promise<Note | null> {
+    try {
+      const row = await prisma.note.update({
+        where: { id: input.id, deletedAt: null, status: "inbox" },
+        data: {
+          nextReviewAt: input.nextReviewAt,
+          lastReviewedAt: input.lastReviewedAt,
+          updatedAt: input.updatedAt,
+          reviewCount: { increment: 1 },
+        },
+      });
+      return toDomain(row);
+    } catch (err) {
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2025") {
+        logDbFailure({ op: "deferReview", err, noteId: input.id });
+        throw err;
+      }
+      const existing = await prisma.note.findUnique({
+        where: { id: input.id },
+        select: { status: true, deletedAt: true },
+      });
+      if (!existing || existing.deletedAt !== null) return null;
+      throw new NoteNotProcessable(existing.status);
+    }
   }
 }

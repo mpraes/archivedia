@@ -1,5 +1,6 @@
 import type { Note } from "@/domain/note";
 import { AppError } from "@/errors/app-error";
+import { logDbFailure } from "@/lib/logger";
 import { extractLinkedNoteIds, normaliseTags } from "@/lib/note-links";
 import type { NoteServiceDeps } from "./dependencies";
 
@@ -67,6 +68,7 @@ export async function updateNote(
     return updated;
   } catch (err) {
     if (err instanceof AppError) throw err;
+    logDbFailure({ component: "update_note", op: "patch", err, noteId: id });
     throw AppError.databaseUnavailable();
   }
 }

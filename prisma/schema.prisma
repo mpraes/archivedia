@@ -15,19 +15,148 @@ datasource db {
 enum NoteStatus {
   inbox
   permanent
+  deleted
+}
+
+enum SpaceStatus {
+  active
+  completed
+  archived
+}
+
+enum SpaceNoteAddedBy {
+  manual
+  review
+  created_in_space @map("created-in-space")
+}
+
+enum CanvasNodeType {
+  note
+  text
+}
+
+enum CanvasHandle {
+  top
+  right
+  bottom
+  left
 }
 
 model Note {
   id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   publicId      String     @unique @map("public_id") @db.VarChar(64)
   content       String     @db.Text
+  whyItMatters  String?    @map("why_it_matters") @db.Text
   status        NoteStatus @default(inbox)
   linkedNoteIds String[]   @default([]) @map("linked_note_ids")
   tags          String[]   @default([])
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  processedAt   DateTime?  @map("processed_at") @db.Timestamptz(6)
+  lastReviewedAt DateTime? @map("last_reviewed_at") @db.Timestamptz(6)
+  nextReviewAt  DateTime?  @map("next_review_at") @db.Timestamptz(6)
+  reviewCount   Int        @default(0) @map("review_count")
   deletedAt     DateTime?  @map("deleted_at") @db.Timestamptz(6)
 
+  spaceMemberships SpaceNote[]
+  canvasNodes      CanvasNode[]
+
   @@index([createdAt(sort: Desc)], name: "idx_notes_created_at")
+  @@index([status, nextReviewAt], name: "idx_notes_review_queue")
   @@map("notes")
+}
+
+model Space {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String      @db.VarChar(200)
+  description String?     @db.Text
+  status      SpaceStatus @default(active)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  notes SpaceNote[]
+  canvas Canvas?
+
+  @@index([status, updatedAt(sort: Desc)], name: "idx_spaces_status_updated")
+  @@map("spaces")
+}
+
+model SpaceNote {
+  spaceId String            @map("space_id") @db.Uuid
+  noteId  String            @map("note_id") @db.Uuid
+  addedAt DateTime          @default(now()) @map("added_at") @db.Timestamptz(6)
+  addedBy SpaceNoteAddedBy  @default(manual) @map("added_by")
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  note  Note  @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@id([spaceId, noteId])
+  @@index([noteId], name: "idx_space_notes_note")
+  @@index([spaceId, addedAt(sort: Desc)], name: "idx_space_notes_space_added")
+  @@map("space_notes")
+}
+
+/// Phase 3 / Canvas (requirements_v2). One Canvas per Space in the
+/// MVP; the unique index on (space_id) where name = 'Main canvas'
+/// enforces that constraint without needing a separate flag column.
+model Canvas {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  spaceId   String   @unique @map("space_id") @db.Uuid
+  name      String   @default("Main canvas") @db.VarChar(120)
+  /// Viewport is the user's last-known pan/zoom. Stored as JSONB so
+  /// React Flow can rehydrate the view without a separate table.
+  viewport  Json     @default("{\"x\":0,\"y\":0,\"zoom\":1}") @map("viewport")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  space Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  nodes CanvasNode[]
+  edges CanvasEdge[]
+
+  @@map("canvases")
+}
+
+model CanvasNode {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  canvasId  String         @map("canvas_id") @db.Uuid
+  /// 'note' references an existing note (note_id NOT NULL, text NULL).
+  /// 'text' is a free-form text card (text NOT NULL, note_id NULL).
+  type      CanvasNodeType @map("type")
+  noteId    String?        @map("note_id") @db.Uuid
+  text      String?        @db.Text
+  x         Int            @default(0)
+  y         Int            @default(0)
+  width     Int            @default(320)
+  height    Int            @default(180)
+  zIndex    Int            @default(0) @map("z_index")
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  canvas Canvas       @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  note   Note?        @relation(fields: [noteId], references: [id], onDelete: SetNull)
+
+  outgoingEdges CanvasEdge[] @relation("CanvasEdgeSource")
+  incomingEdges CanvasEdge[] @relation("CanvasEdgeTarget")
+
+  @@index([canvasId], name: "idx_canvas_nodes_canvas")
+  @@map("canvas_nodes")
+}
+
+model CanvasEdge {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  canvasId     String       @map("canvas_id") @db.Uuid
+  sourceNodeId String       @map("source_node_id") @db.Uuid
+  targetNodeId String       @map("target_node_id") @db.Uuid
+  label        String?      @db.VarChar(64)
+  sourceHandle CanvasHandle? @map("source_handle")
+  targetHandle CanvasHandle? @map("target_handle")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  canvas     Canvas     @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  sourceNode CanvasNode @relation("CanvasEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode CanvasNode @relation("CanvasEdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@index([canvasId], name: "idx_canvas_edges_canvas")
+  @@map("canvas_edges")
 }

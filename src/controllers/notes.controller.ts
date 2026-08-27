@@ -15,7 +15,10 @@ export async function POST(req: NextRequest): Promise<Response> {
     const json = await req.json().catch(() => ({}));
     const body = createNoteBodySchema.parse(json);
     const deps = getNoteServiceDeps();
-    const note = await createNote(deps, body.content, { tags: body.tags });
+    const note = await createNote(deps, body.content, {
+      tags: body.tags,
+      whyItMatters: body.whyItMatters ?? null,
+    });
     return Response.json({ data: noteDto(note) }, { status: 201 });
   } catch (err) {
     return toErrorResponse(err);

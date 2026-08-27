@@ -1,6 +1,16 @@
 import type { Note } from "@/domain/note";
 import type { NoteStatus } from "@/domain/note-status";
+import { requiresReview, reviewGate } from "@/lib/format";
 import { NoteNotProcessable, type NotePatch, type NoteRepository } from "./note.repository";
+
+/** Trim whitespace; treat empty strings as "no answer". Kept in this
+ *  file (and not shared with Postgres) because the in-memory fake does
+ *  not need to enforce the same column-level invariants as the DB. */
+function normaliseWhyItMatters(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
 
 /**
  * In-memory fake for unit tests. Keeps the public contract faithful
@@ -13,6 +23,7 @@ export class InMemoryNoteRepository implements NoteRepository {
   async insert(input: {
     publicId: string;
     content: string;
+    whyItMatters?: string | null;
     linkedNoteIds: string[];
     tags: string[];
     createdAt: Date;
@@ -23,11 +34,16 @@ export class InMemoryNoteRepository implements NoteRepository {
       id,
       publicId: input.publicId,
       content: input.content,
+      whyItMatters: normaliseWhyItMatters(input.whyItMatters),
       status: "inbox",
       linkedNoteIds: [...input.linkedNoteIds],
       tags: [...input.tags],
       createdAt: input.createdAt,
       updatedAt: input.createdAt,
+      processedAt: null,
+      lastReviewedAt: null,
+      nextReviewAt: null,
+      reviewCount: 0,
       deletedAt: null,
     };
     this.rows.set(id, note);
@@ -57,7 +73,7 @@ export class InMemoryNoteRepository implements NoteRepository {
   async softDelete(id: string, deletedAt: Date): Promise<boolean> {
     const current = this.rows.get(id);
     if (!current || current.deletedAt !== null) return false;
-    this.rows.set(id, { ...current, deletedAt });
+    this.rows.set(id, { ...current, deletedAt, status: "deleted" });
     return true;
   }
 
@@ -143,5 +159,65 @@ export class InMemoryNoteRepository implements NoteRepository {
       .filter((n) => n.linkedNoteIds.includes(targetPublicId))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, limit);
+  }
+
+  async listReviewQueue(input: { limit: number; now: Date }): Promise<Note[]> {
+    const gate = reviewGate(input.now);
+    void gate; // referenced for clarity; the predicate below uses input.now directly
+    return [...this.rows.values()]
+      .filter((n) => requiresReview(n, input.now))
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .slice(0, input.limit);
+  }
+
+  async countReviewQueue(now: Date): Promise<number> {
+    return [...this.rows.values()].filter((n) => requiresReview(n, now)).length;
+  }
+
+  async promoteToPermanent(input: {
+    id: string;
+    content: string;
+    linkedNoteIds: string[];
+    whyItMatters: string | null;
+    processedAt: Date;
+    lastReviewedAt: Date;
+    updatedAt: Date;
+  }): Promise<Note | null> {
+    const current = this.rows.get(input.id);
+    if (!current || current.deletedAt !== null) return null;
+    if (current.status !== "inbox") throw new NoteNotProcessable(current.status);
+    const next: Note = {
+      ...current,
+      content: input.content,
+      linkedNoteIds: [...input.linkedNoteIds],
+      whyItMatters: normaliseWhyItMatters(input.whyItMatters),
+      status: "permanent",
+      processedAt: input.processedAt,
+      lastReviewedAt: input.lastReviewedAt,
+      updatedAt: input.updatedAt,
+      reviewCount: current.reviewCount + 1,
+    };
+    this.rows.set(input.id, next);
+    return next;
+  }
+
+  async deferReview(input: {
+    id: string;
+    nextReviewAt: Date;
+    lastReviewedAt: Date;
+    updatedAt: Date;
+  }): Promise<Note | null> {
+    const current = this.rows.get(input.id);
+    if (!current || current.deletedAt !== null) return null;
+    if (current.status !== "inbox") throw new NoteNotProcessable(current.status);
+    const next: Note = {
+      ...current,
+      nextReviewAt: input.nextReviewAt,
+      lastReviewedAt: input.lastReviewedAt,
+      updatedAt: input.updatedAt,
+      reviewCount: current.reviewCount + 1,
+    };
+    this.rows.set(input.id, next);
+    return next;
   }
 }

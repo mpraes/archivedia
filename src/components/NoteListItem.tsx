@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import type { NoteDto } from "@/lib/note-dto";
 import type { NoteStatus } from "@/domain/note-status";
-import { formatLocalTime, preview } from "@/lib/format";
+import {
+  agingLabel,
+  displayPreview,
+  formatLocalTime,
+  isNeedingReview,
+  type AgingLabel,
+} from "@/lib/format";
 import { TagChip } from "./TagChip";
 
 interface NoteListItemProps {
@@ -16,7 +22,10 @@ const RECENT_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 export function NoteListItem({ note }: NoteListItemProps) {
   const locale = useLocale();
   const t = useTranslations("filters");
+  const tAging = useTranslations("aging");
   const isRecent = isRecentlyProcessed(note);
+  const needsReview = note.status === "inbox" && isNeedingReview(note.createdAt);
+  const aging = agingLabel(note.createdAt);
 
   return (
     <li>
@@ -29,7 +38,9 @@ export function NoteListItem({ note }: NoteListItemProps) {
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-1 text-xs uppercase tracking-[0.14em] text-[var(--color-ink-soft)]">
-          <time dateTime={note.createdAt}>{formatLocalTime(note.createdAt, locale)}</time>
+          <time dateTime={note.createdAt}>
+            {formatLocalTime(note.createdAt, locale)}
+          </time>
           <div className="flex flex-wrap items-center gap-1.5">
             {isRecent ? (
               <span
@@ -40,16 +51,35 @@ export function NoteListItem({ note }: NoteListItemProps) {
                 {t("recent")}
               </span>
             ) : null}
-            <StatusBadge status={note.status} label={statusLabel(t, note.status)} />
+            {needsReview ? (
+              <span
+                title={tAging("review_alt")}
+                aria-label={tAging("review_alt")}
+                className="rounded-full border border-[var(--color-warn)]/40 bg-[var(--color-warn)]/10 px-1.5 py-0 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--color-warn)]"
+              >
+                {tAging("needs_review")}
+              </span>
+            ) : null}
+            <StatusBadge
+              status={note.status}
+              label={statusLabel(t, tAging, note.status)}
+            />
           </div>
         </div>
         <p className="mt-2 font-[var(--font-display)] text-base text-[var(--color-ink)]">
-          {preview(note.content)}
+          {displayPreview(note.content)}
+        </p>
+        <p className="mt-1 text-[11px] normal-case tracking-normal text-[var(--color-ink-soft)]">
+          {formatAging(aging, tAging)}
         </p>
         {note.tags.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {note.tags.slice(0, 3).map((tag) => (
-              <TagChip key={tag} tag={tag} filterHref={`/?tag=${encodeURIComponent(tag)}`} />
+              <TagChip
+                key={tag}
+                tag={tag}
+                filterHref={`/?tag=${encodeURIComponent(tag)}`}
+              />
             ))}
             {note.tags.length > 3 ? (
               <span className="text-[10px] tracking-[0.18em] text-[var(--color-ink-soft)]">
@@ -64,15 +94,29 @@ export function NoteListItem({ note }: NoteListItemProps) {
 }
 
 function statusLabel(
-  t: (key: string) => string,
+  filtersT: (key: string) => string,
+  agingT: (key: string) => string,
   status: NoteStatus,
 ): string {
   switch (status) {
     case "permanent":
-      return t("permanent");
+      return filtersT("permanent");
     case "inbox":
-      return status;
+      return agingT("status_inbox");
+    case "deleted":
+      // Soft-deleted notes should never appear in active listings, but
+      // we keep a defensive label in case a future surface renders them.
+      return agingT("status_deleted");
   }
+}
+
+function formatAging(
+  label: AgingLabel,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): string {
+  if (label.kind === "today") return t("captured_today");
+  if (label.kind === "yesterday") return t("captured_yesterday");
+  return t("captured_days_ago", { count: label.count });
 }
 
 function StatusBadge({ status, label }: { status: NoteStatus; label: string }) {

@@ -5,6 +5,7 @@
 // non-Next runtimes (a future standalone server or test harness) can
 // reuse the same controllers and services without rewiring them.
 
+import { logStartup } from "@/lib/logger";
 import { getNoteServiceDeps } from "@/services/dependencies";
 
 export interface AppContext {
@@ -20,14 +21,6 @@ export function bootstrap(): AppContext {
   // The Prisma client is lazy-initialised; touching the deps here fails
   // fast if DATABASE_URL is missing so we surface misconfiguration early.
   const timezone = getNoteServiceDeps().timezone;
-  // eslint-disable-next-line no-console
-  console.log(
-    JSON.stringify({
-      level: "info",
-      message: "archivedia backend initialised",
-      timezone,
-      ts: new Date().toISOString(),
-    }),
-  );
+  logStartup({ timezone });
   return { timezone, ready: true };
 }
