@@ -1,27 +1,27 @@
 # archivedia
 
 Frictionless daily capture for fleeting notes. One screen, keyboard-first,
-PostgreSQL-backed. v0.1 ships the minimum useful product: capture, browse by day,
+MariaDB-backed. v0.1 ships the minimum useful product: capture, browse by day,
 view, edit, delete, and a health endpoint.
 
 ## Stack
 
 - Next.js 15 (App Router) + React 19 + TypeScript
 - Tailwind CSS v4 (PostCSS plugin)
-- Prisma 6 + PostgreSQL
+- Prisma 6 + MariaDB / MySQL
 - Zod for request validation
 - Vitest for tests
 
-## Quick start (local dev against the homelab Postgres)
+## Quick start
 
 ```bash
-cp .env.example .env       # adjust DATABASE_URL to your Postgres
+cp .env.example .env       # adjust DATABASE_URL to your MySQL/MariaDB
 npm install
-npx prisma migrate deploy   # creates the notes table
+npx prisma migrate deploy   # creates the tables (or `prisma db push` for dev)
 npm run dev                 # http://localhost:3000
 ```
 
-The health endpoint at `GET /api/v1/health` reports whether Postgres is reachable.
+The health endpoint at `GET /api/v1/health` reports whether the database is reachable.
 
 ## Architecture
 
@@ -30,7 +30,7 @@ src/
   app/                Next.js App Router pages + /api/v1 route handlers
   controllers/        HTTP concerns: parsing, validation glue, status codes
   services/           Business rules (create / list / update / delete)
-  repositories/       Persistence interface + Postgres + in-memory fake
+  repositories/       Persistence interface + MariaDB + in-memory fake
   schemas/            Zod request schemas
   domain/             Note entity + status enum
   errors/             AppError + canonical JSON error handler
@@ -64,7 +64,7 @@ Errors return a consistent shape:
 npm test
 ```
 
-20 unit tests cover the public id generator, day-range math, Zod schemas, and
+106 unit tests cover the public id generator, day-range math, Zod schemas, and
 the full service stack against an in-memory fake repository.
 
 ## Deployment
@@ -74,10 +74,10 @@ docker compose build
 docker compose up -d
 ```
 
-The compose file reuses the homelab Postgres defined in `.env` and does not
-spin up its own database.
+The compose file reads `DATABASE_URL` from `.env` and does not spin up its own
+database. Production on Hostinger points `DATABASE_URL` at the managed MySQL/MariaDB.
 
 ### Backups
 
-Daily `pg_dump`, retention, and quarterly restore drills are documented in
+Daily `mysqldump`, retention, and quarterly restore drills are documented in
 [`docs/backup.md`](docs/backup.md).

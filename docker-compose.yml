@@ -1,9 +1,10 @@
 # archivedia — single-service Compose.
 #
-# This file intentionally does NOT define a postgres service. The
-# application reuses the homelab PostgreSQL instance reachable through
-# DATABASE_URL (see .env). The app container connects to it over the
-# host network so it can reach the LAN address set in POSTGRES_HOST.
+# This file intentionally does NOT define a database service. The
+# application connects to the MariaDB instance reachable through
+# DATABASE_URL (see .env). Production deploys on Hostinger hit the
+# managed MySQL/MariaDB over the public network; local dev can point
+# DATABASE_URL at any reachable MySQL or MariaDB instance.
 services:
   app:
     build:
@@ -20,11 +21,6 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
-    # The homelab Postgres lives on the LAN; bridge networking would
-    # require extra DNS plumbing, so the simplest reliable option is
-    # host networking. Drop this line and add `networks:` blocks if
-    # the deployment moves to a docker network with a routable alias.
-    network_mode: host
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health | grep -q '\"status\":\"ok\"'"]
       interval: 30s

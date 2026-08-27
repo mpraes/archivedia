@@ -14,6 +14,48 @@ function normaliseWhyItMatters(value: string | null | undefined): string | null 
   return trimmed.length === 0 ? null : trimmed;
 }
 
+/** Parse a JSON column that semantically holds `string[]` (was TEXT[] in
+ *  PostgreSQL, now JSON in MariaDB). The driver may give us the parsed
+ *  array or the raw JSON string depending on the call path (typed client
+ *  vs $queryRaw), so accept both.
+ *
+ *  Throws on a structural mismatch rather than silently coercing — the
+ *  alternative is "tags comes back as [object Object]" bugs that only
+ *  surface at runtime. */
+function parseJsonStringArray(raw: unknown, fieldName: string): string[] {
+  let candidate: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      candidate = JSON.parse(raw);
+    } catch (err) {
+      throw new Error(
+        `${fieldName}: invalid JSON string "${raw}": ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+  if (candidate === null || candidate === undefined) return [];
+  if (!Array.isArray(candidate)) {
+    throw new Error(
+      `${fieldName}: expected JSON array, got ${typeof candidate}: ${JSON.stringify(candidate)}`,
+    );
+  }
+  return candidate.map((value, index) => {
+    if (typeof value !== "string") {
+      throw new Error(
+        `${fieldName}[${index}]: expected string, got ${typeof value}: ${JSON.stringify(value)}`,
+      );
+    }
+    return value;
+  });
+}
+
+/** Wrap a string array for the `Json` column. The cast is safe because
+ *  `JsonArray` is just `InputJsonValue[]` and a `string[]` is assignable
+ *  when every element is a JSON-compatible primitive. */
+function toJsonStringArray(arr: readonly string[]): Prisma.InputJsonValue {
+  return arr.slice() as unknown as Prisma.InputJsonValue;
+}
+
 /** Shared WHERE clause for review-queue queries. Mirrors the
  *  `requiresReview()` predicate in lib/format.ts so DB-side filtering
  *  and JS-side filtering agree on the rule. */
@@ -31,6 +73,14 @@ function reviewWhere(now: Date): PrismaNS.NoteWhereInput {
  * Postgres-backed implementation of NoteRepository. Maps Prisma's row
  * shape (snake_case columns, Date objects) to the domain Note so the
  * rest of the app never imports @prisma/client directly.
+ *
+ * Notes on the MariaDB / JSON adaptation:
+ * - `row.linkedNoteIds` and `row.tags` come back from Prisma as
+ *   `Prisma.JsonValue` (they were `string[]` in the PostgreSQL version).
+ *   We parse them here into the domain `string[]` shape so the rest of
+ *   the app — and the in-memory repo — keeps treating them as plain
+ *   arrays. `parseJsonStringArray` is defensive about both parsed and
+ *   stringified inputs because $queryRaw paths return raw strings.
  */
 function toDomain(row: PrismaNote): Note {
   return {
@@ -39,8 +89,8 @@ function toDomain(row: PrismaNote): Note {
     content: row.content,
     whyItMatters: row.whyItMatters ?? null,
     status: row.status,
-    linkedNoteIds: row.linkedNoteIds,
-    tags: row.tags,
+    linkedNoteIds: parseJsonStringArray(row.linkedNoteIds, "linkedNoteIds"),
+    tags: parseJsonStringArray(row.tags, "tags"),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     processedAt: row.processedAt,
@@ -48,6 +98,46 @@ function toDomain(row: PrismaNote): Note {
     nextReviewAt: row.nextReviewAt,
     reviewCount: row.reviewCount,
     deletedAt: row.deletedAt,
+  };
+}
+
+/** Snake-case row shape returned by $queryRaw for the `findBacklinks`
+ *  query. Mirrors the columns of the `notes` table. */
+interface RawNoteRow {
+  id: string;
+  public_id: string;
+  content: string;
+  why_it_matters: string | null;
+  status: NoteStatus;
+  linked_note_ids: unknown;
+  tags: unknown;
+  created_at: Date;
+  updated_at: Date;
+  processed_at: Date | null;
+  last_reviewed_at: Date | null;
+  next_review_at: Date | null;
+  review_count: number;
+  deleted_at: Date | null;
+}
+
+/** Same as `toDomain` but reads from snake_case columns, the shape we
+ *  get back from `$queryRaw`. */
+function toDomainFromRaw(row: RawNoteRow): Note {
+  return {
+    id: row.id,
+    publicId: row.public_id,
+    content: row.content,
+    whyItMatters: row.why_it_matters,
+    status: row.status,
+    linkedNoteIds: parseJsonStringArray(row.linked_note_ids, "linked_note_ids"),
+    tags: parseJsonStringArray(row.tags, "tags"),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    processedAt: row.processed_at,
+    lastReviewedAt: row.last_reviewed_at,
+    nextReviewAt: row.next_review_at,
+    reviewCount: row.review_count,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -66,8 +156,8 @@ export class PostgresNoteRepository implements NoteRepository {
           publicId: input.publicId,
           content: input.content,
           whyItMatters: normaliseWhyItMatters(input.whyItMatters),
-          linkedNoteIds: input.linkedNoteIds,
-          tags: input.tags,
+          linkedNoteIds: toJsonStringArray(input.linkedNoteIds),
+          tags: toJsonStringArray(input.tags),
           createdAt: input.createdAt,
           updatedAt: input.createdAt,
         },
@@ -139,10 +229,10 @@ export class PostgresNoteRepository implements NoteRepository {
       data.content = patch.content;
     }
     if (patch.tags !== undefined) {
-      data.tags = patch.tags;
+      data.tags = toJsonStringArray(patch.tags);
     }
     if (patch.content !== undefined && patch.linkedNoteIds !== undefined) {
-      data.linkedNoteIds = patch.linkedNoteIds;
+      data.linkedNoteIds = toJsonStringArray(patch.linkedNoteIds);
     }
     try {
       const row = await prisma.note.update({
@@ -170,7 +260,12 @@ export class PostgresNoteRepository implements NoteRepository {
     try {
       const row = await prisma.note.update({
         where: { id, deletedAt: null, status: fromStatus },
-        data: { content, linkedNoteIds, status: toStatus, updatedAt },
+        data: {
+          content,
+          linkedNoteIds: toJsonStringArray(linkedNoteIds),
+          status: toStatus,
+          updatedAt,
+        },
       });
       return toDomain(row);
     } catch (err) {
@@ -195,15 +290,46 @@ export class PostgresNoteRepository implements NoteRepository {
     tag?: string;
     limit: number;
   }): Promise<Note[]> {
+    // `tag` requires JSON_CONTAINS on the MariaDB JSON column; Prisma's
+    // typed `findMany` can't express that (no `has` operator on JSON).
+    // When tag is set we drop to $queryRaw. The non-tag path keeps the
+    // typed query so the rest of the filter logic stays simple.
+    if (input.tag) {
+      const conditions: Prisma.Sql[] = [Prisma.sql`deleted_at IS NULL`];
+      if (input.q) {
+        // MariaDB's default utf8mb4_unicode_ci collation makes LIKE
+        // case-insensitive, so no ESCAPE or LOWER() wrapping needed.
+        conditions.push(Prisma.sql`content LIKE ${`%${input.q}%`}`);
+      }
+      if (input.status) {
+        conditions.push(Prisma.sql`status = ${input.status}`);
+      }
+      // JSON_CONTAINS expects a JSON-encoded value as the second arg.
+      conditions.push(
+        Prisma.sql`JSON_CONTAINS(tags, ${JSON.stringify([input.tag])})`,
+      );
+      const rows = await prisma.$queryRaw<RawNoteRow[]>(Prisma.sql`
+        SELECT id, public_id, content, why_it_matters, status,
+               linked_note_ids, tags,
+               created_at, updated_at, processed_at, last_reviewed_at,
+               next_review_at, review_count, deleted_at
+        FROM notes
+        WHERE ${Prisma.join(conditions, " AND ")}
+        ORDER BY created_at DESC
+        LIMIT ${input.limit}
+      `);
+      return rows.map(toDomainFromRaw);
+    }
+
     const where: PrismaNS.NoteWhereInput = { deletedAt: null };
     if (input.q) {
-      where.content = { contains: input.q, mode: "insensitive" };
+      // MariaDB's default utf8mb4_unicode_ci collation makes LIKE
+      // case-insensitive; Prisma's typed `contains` filter compiles to
+      // LIKE under the hood, so the match is case-insensitive here too.
+      where.content = { contains: input.q };
     }
     if (input.status) {
       where.status = input.status;
-    }
-    if (input.tag) {
-      where.tags = { has: input.tag };
     }
     const rows = await prisma.note.findMany({
       where,
@@ -214,12 +340,21 @@ export class PostgresNoteRepository implements NoteRepository {
   }
 
   async findBacklinks(targetPublicId: string, limit: number): Promise<Note[]> {
-    const rows = await prisma.note.findMany({
-      where: { deletedAt: null, linkedNoteIds: { has: targetPublicId } },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-    });
-    return rows.map(toDomain);
+    // JSON_CONTAINS on the MariaDB JSON column. Same reason as the tag
+    // path in `listWithFilters`: Prisma's typed query has no `has`
+    // operator against JSON columns.
+    const rows = await prisma.$queryRaw<RawNoteRow[]>`
+      SELECT id, public_id, content, why_it_matters, status,
+             linked_note_ids, tags,
+             created_at, updated_at, processed_at, last_reviewed_at,
+             next_review_at, review_count, deleted_at
+      FROM notes
+      WHERE deleted_at IS NULL
+        AND JSON_CONTAINS(linked_note_ids, ${JSON.stringify([targetPublicId])})
+      ORDER BY created_at DESC
+      LIMIT ${limit}
+    `;
+    return rows.map(toDomainFromRaw);
   }
 
   async listReviewQueue(input: { limit: number; now: Date }): Promise<Note[]> {
@@ -250,7 +385,7 @@ export class PostgresNoteRepository implements NoteRepository {
         where: { id: input.id, deletedAt: null, status: "inbox" },
         data: {
           content: input.content,
-          linkedNoteIds: input.linkedNoteIds,
+          linkedNoteIds: toJsonStringArray(input.linkedNoteIds),
           whyItMatters: input.whyItMatters,
           status: "permanent",
           processedAt: input.processedAt,

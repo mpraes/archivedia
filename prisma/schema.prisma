@@ -1,16 +1,35 @@
-// Prisma schema for archivedia (a.k.a. headapp).
-// One entity in v0.1: Note. Timestamps are stored UTC and surfaced as ISO 8601.
+// Prisma schema for archivedia.
+//
+// v0.x was PostgreSQL-only (String[] arrays, gen_random_uuid, pgcrypto,
+// @db.Uuid/Text/VarChar/Timestamptz). v0.8+ is MariaDB (Hostinger). The
+// translation notes are in prisma/mysql-bootstrap.sql — kept there so this
+// file stays close to Prisma's schema language and easy to diff.
+//
+// Translation rules applied below:
+//   * provider = "mysql" (MariaDB 10.x+)
+//   * UUID PKs  -> @id @default(uuid())  Prisma emits CHAR(36) DEFAULT (UUID())
+//   * String[]  -> Json @default("[]")    MariaDB JSON columns; arrays
+//                                         are serialized in the repo layer
+//                                         (see postgres-note.repository.ts)
+//   * JsonB     -> Json                   MariaDB has native JSON
+//   * TIMESTAMPTZ(6) -> DateTime           MariaDB DATETIME(6) (UTC by
+//                                         convention; no tz stored)
+//   * pgcrypto dropped, no extension needed
+//   * @db.Uuid / @db.Text / @db.VarChar / @db.Timestamptz stripped
+//     (MariaDB provider doesn't accept them and the native types match)
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [pgcrypto]
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
+
+// Enums map 1:1 to MariaDB ENUM types. Prisma's MySQL provider supports
+// native enums; we keep them for the same reason the PG version had them:
+// defence-in-depth on top of Zod validation.
 
 enum NoteStatus {
   inbox
@@ -43,20 +62,26 @@ enum CanvasHandle {
 }
 
 model Note {
-  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  publicId      String     @unique @map("public_id") @db.VarChar(64)
-  content       String     @db.Text
-  whyItMatters  String?    @map("why_it_matters") @db.Text
-  status        NoteStatus @default(inbox)
-  linkedNoteIds String[]   @default([]) @map("linked_note_ids")
-  tags          String[]   @default([])
-  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  processedAt   DateTime?  @map("processed_at") @db.Timestamptz(6)
-  lastReviewedAt DateTime? @map("last_reviewed_at") @db.Timestamptz(6)
-  nextReviewAt  DateTime?  @map("next_review_at") @db.Timestamptz(6)
-  reviewCount   Int        @default(0) @map("review_count")
-  deletedAt     DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  id              String       @id @default(uuid()) @db.Char(36)
+  publicId        String       @unique @map("public_id") @db.VarChar(64)
+  content         String       @db.Text
+  whyItMatters    String?      @map("why_it_matters") @db.Text
+  status          NoteStatus   @default(inbox)
+  /// Was TEXT[] in PostgreSQL. Now a JSON column holding a string array.
+  /// Reads/writes are serialised in the Postgres repo (see
+  /// `parseJsonStringArray` / `stringifyJsonStringArray` helpers there).
+  /// Repo-side filtering for `has` predicates uses JSON_CONTAINS via
+  /// `$queryRaw` because Prisma's `has` operator only works on native
+  /// scalar arrays, which MariaDB does not provide.
+  linkedNoteIds   Json         @default("[]") @map("linked_note_ids")
+  tags            Json         @default("[]")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
+  processedAt     DateTime?    @map("processed_at") @db.DateTime(6)
+  lastReviewedAt  DateTime?    @map("last_reviewed_at") @db.DateTime(6)
+  nextReviewAt    DateTime?    @map("next_review_at") @db.DateTime(6)
+  reviewCount     Int          @default(0) @map("review_count")
+  deletedAt       DateTime?    @map("deleted_at") @db.DateTime(6)
 
   spaceMemberships SpaceNote[]
   canvasNodes      CanvasNode[]
@@ -67,14 +92,14 @@ model Note {
 }
 
 model Space {
-  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id          String      @id @default(uuid()) @db.Char(36)
   title       String      @db.VarChar(200)
   description String?     @db.Text
   status      SpaceStatus @default(active)
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
 
-  notes SpaceNote[]
+  notes  SpaceNote[]
   canvas Canvas?
 
   @@index([status, updatedAt(sort: Desc)], name: "idx_spaces_status_updated")
@@ -82,9 +107,9 @@ model Space {
 }
 
 model SpaceNote {
-  spaceId String            @map("space_id") @db.Uuid
-  noteId  String            @map("note_id") @db.Uuid
-  addedAt DateTime          @default(now()) @map("added_at") @db.Timestamptz(6)
+  spaceId String            @map("space_id") @db.Char(36)
+  noteId  String            @map("note_id") @db.Char(36)
+  addedAt DateTime          @default(now()) @map("added_at") @db.DateTime(6)
   addedBy SpaceNoteAddedBy  @default(manual) @map("added_by")
 
   space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
@@ -100,14 +125,14 @@ model SpaceNote {
 /// MVP; the unique index on (space_id) where name = 'Main canvas'
 /// enforces that constraint without needing a separate flag column.
 model Canvas {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  spaceId   String   @unique @map("space_id") @db.Uuid
+  id        String   @id @default(uuid()) @db.Char(36)
+  spaceId   String   @unique @map("space_id") @db.Char(36)
   name      String   @default("Main canvas") @db.VarChar(120)
-  /// Viewport is the user's last-known pan/zoom. Stored as JSONB so
+  /// Viewport is the user's last-known pan/zoom. Stored as JSON so
   /// React Flow can rehydrate the view without a separate table.
-  viewport  Json     @default("{\"x\":0,\"y\":0,\"zoom\":1}") @map("viewport")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  viewport  Json     @default("{\"x\":0,\"y\":0,\"zoom\":1}")
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
 
   space Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   nodes CanvasNode[]
@@ -117,20 +142,20 @@ model Canvas {
 }
 
 model CanvasNode {
-  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  canvasId  String         @map("canvas_id") @db.Uuid
+  id        String         @id @default(uuid()) @db.Char(36)
+  canvasId  String         @map("canvas_id") @db.Char(36)
   /// 'note' references an existing note (note_id NOT NULL, text NULL).
   /// 'text' is a free-form text card (text NOT NULL, note_id NULL).
-  type      CanvasNodeType @map("type")
-  noteId    String?        @map("note_id") @db.Uuid
+  type      CanvasNodeType
+  noteId    String?        @map("note_id") @db.Char(36)
   text      String?        @db.Text
   x         Int            @default(0)
   y         Int            @default(0)
   width     Int            @default(320)
   height    Int            @default(180)
   zIndex    Int            @default(0) @map("z_index")
-  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt DateTime       @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
 
   canvas Canvas       @relation(fields: [canvasId], references: [id], onDelete: Cascade)
   note   Note?        @relation(fields: [noteId], references: [id], onDelete: SetNull)
@@ -143,15 +168,15 @@ model CanvasNode {
 }
 
 model CanvasEdge {
-  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  canvasId     String       @map("canvas_id") @db.Uuid
-  sourceNodeId String       @map("source_node_id") @db.Uuid
-  targetNodeId String       @map("target_node_id") @db.Uuid
-  label        String?      @db.VarChar(64)
+  id           String        @id @default(uuid()) @db.Char(36)
+  canvasId     String        @map("canvas_id") @db.Char(36)
+  sourceNodeId String        @map("source_node_id") @db.Char(36)
+  targetNodeId String        @map("target_node_id") @db.Char(36)
+  label        String?       @db.VarChar(64)
   sourceHandle CanvasHandle? @map("source_handle")
   targetHandle CanvasHandle? @map("target_handle")
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at") @db.DateTime(6)
 
   canvas     Canvas     @relation(fields: [canvasId], references: [id], onDelete: Cascade)
   sourceNode CanvasNode @relation("CanvasEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
