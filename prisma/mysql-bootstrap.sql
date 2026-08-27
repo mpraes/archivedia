@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS `notes` (
   `public_id`        VARCHAR(64)                                NOT NULL,
   `content`          TEXT                                       NOT NULL,
   `why_it_matters`   TEXT                                       NULL,
+  `reference`        TEXT                                       NULL,
   `status`           ENUM('inbox','permanent','deleted')         NOT NULL DEFAULT 'inbox',
   `linked_note_ids`  JSON                                       NOT NULL,
   `tags`             JSON                                       NOT NULL,

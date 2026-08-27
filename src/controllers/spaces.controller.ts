@@ -131,6 +131,7 @@ export async function POST_NOTE(req: NextRequest, ctx: RouteParams): Promise<Res
       spaceId,
       content: body.content,
       whyItMatters: body.whyItMatters ?? null,
+      reference: body.reference ?? null,
     });
     return Response.json({ data: noteDto(note) }, { status: 201 });
   } catch (err) {

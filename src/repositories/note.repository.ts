@@ -18,6 +18,8 @@ export interface NoteRepository {
     content: string;
     /** Optional first-class "Why does this matter?" answer (v0.7). */
     whyItMatters?: string | null;
+    /** Optional source citation (book, link, article, video, etc.) (v0.8). */
+    reference?: string | null;
     linkedNoteIds: string[];
     tags: string[];
     createdAt: Date;
@@ -69,6 +71,9 @@ export interface NoteRepository {
     content: string;
     linkedNoteIds: string[];
     whyItMatters: string | null;
+    /** Optional source citation (v0.8); preserved across promote so the
+     *  user's citation survives the inbox→permanent transition. */
+    reference: string | null;
     processedAt: Date;
     lastReviewedAt: Date;
     updatedAt: Date;

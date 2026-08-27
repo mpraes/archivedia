@@ -16,6 +16,7 @@ export interface ReviewQueueItem {
   publicId: string;
   content: string;
   whyItMatters: string | null;
+  reference: string | null;
   status: "inbox";
   createdAt: string;
   updatedAt: string;
@@ -31,6 +32,7 @@ function toQueueItem(note: Note, now: Date): ReviewQueueItem {
     publicId: note.publicId,
     content: note.content,
     whyItMatters: note.whyItMatters,
+    reference: note.reference,
     status: "inbox",
     createdAt: note.createdAt.toISOString(),
     updatedAt: note.updatedAt.toISOString(),

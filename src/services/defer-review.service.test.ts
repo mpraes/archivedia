@@ -37,7 +37,14 @@ describe("deferReview service", () => {
   it("rejects permanent notes (cannot defer what is already permanent)", async () => {
     const deps = depsFor();
     const note = await createNote(deps, "draft", {}, new Date("2026-08-20T12:00:00.000Z"));
-    await makePermanent(deps, note.id, "permanent rewrite", null, new Date("2026-08-26T12:00:00.000Z"));
+    await makePermanent(
+      deps,
+      note.id,
+      "permanent rewrite",
+      null,
+      null,
+      new Date("2026-08-26T12:00:00.000Z"),
+    );
     await expect(
       deferReview(deps, note.id, new Date("2026-08-30T12:00:00.000Z"), null),
     ).rejects.toBeInstanceOf(AppError);

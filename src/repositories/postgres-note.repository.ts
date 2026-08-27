@@ -14,6 +14,15 @@ function normaliseWhyItMatters(value: string | null | undefined): string | null 
   return trimmed.length === 0 ? null : trimmed;
 }
 
+/** Same rule as `normaliseWhyItMatters` for the optional `reference`
+ *  column (v0.8). Empty / whitespace-only inputs collapse to null so
+ *  list previews stay clean. */
+function normaliseReference(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
 /** Parse a JSON column that semantically holds `string[]` (was TEXT[] in
  *  PostgreSQL, now JSON in MariaDB). The driver may give us the parsed
  *  array or the raw JSON string depending on the call path (typed client
@@ -88,6 +97,7 @@ function toDomain(row: PrismaNote): Note {
     publicId: row.publicId,
     content: row.content,
     whyItMatters: row.whyItMatters ?? null,
+    reference: row.reference ?? null,
     status: row.status,
     linkedNoteIds: parseJsonStringArray(row.linkedNoteIds, "linkedNoteIds"),
     tags: parseJsonStringArray(row.tags, "tags"),
@@ -108,6 +118,7 @@ interface RawNoteRow {
   public_id: string;
   content: string;
   why_it_matters: string | null;
+  reference: string | null;
   status: NoteStatus;
   linked_note_ids: unknown;
   tags: unknown;
@@ -128,6 +139,7 @@ function toDomainFromRaw(row: RawNoteRow): Note {
     publicId: row.public_id,
     content: row.content,
     whyItMatters: row.why_it_matters,
+    reference: row.reference,
     status: row.status,
     linkedNoteIds: parseJsonStringArray(row.linked_note_ids, "linked_note_ids"),
     tags: parseJsonStringArray(row.tags, "tags"),
@@ -146,6 +158,7 @@ export class PostgresNoteRepository implements NoteRepository {
     publicId: string;
     content: string;
     whyItMatters?: string | null;
+    reference?: string | null;
     linkedNoteIds: string[];
     tags: string[];
     createdAt: Date;
@@ -156,6 +169,7 @@ export class PostgresNoteRepository implements NoteRepository {
           publicId: input.publicId,
           content: input.content,
           whyItMatters: normaliseWhyItMatters(input.whyItMatters),
+          reference: normaliseReference(input.reference),
           linkedNoteIds: toJsonStringArray(input.linkedNoteIds),
           tags: toJsonStringArray(input.tags),
           createdAt: input.createdAt,
@@ -309,7 +323,7 @@ export class PostgresNoteRepository implements NoteRepository {
         Prisma.sql`JSON_CONTAINS(tags, ${JSON.stringify([input.tag])})`,
       );
       const rows = await prisma.$queryRaw<RawNoteRow[]>(Prisma.sql`
-        SELECT id, public_id, content, why_it_matters, status,
+        SELECT id, public_id, content, why_it_matters, reference, status,
                linked_note_ids, tags,
                created_at, updated_at, processed_at, last_reviewed_at,
                next_review_at, review_count, deleted_at
@@ -344,7 +358,7 @@ export class PostgresNoteRepository implements NoteRepository {
     // path in `listWithFilters`: Prisma's typed query has no `has`
     // operator against JSON columns.
     const rows = await prisma.$queryRaw<RawNoteRow[]>`
-      SELECT id, public_id, content, why_it_matters, status,
+      SELECT id, public_id, content, why_it_matters, reference, status,
              linked_note_ids, tags,
              created_at, updated_at, processed_at, last_reviewed_at,
              next_review_at, review_count, deleted_at
@@ -376,6 +390,7 @@ export class PostgresNoteRepository implements NoteRepository {
     content: string;
     linkedNoteIds: string[];
     whyItMatters: string | null;
+    reference: string | null;
     processedAt: Date;
     lastReviewedAt: Date;
     updatedAt: Date;
@@ -387,6 +402,7 @@ export class PostgresNoteRepository implements NoteRepository {
           content: input.content,
           linkedNoteIds: toJsonStringArray(input.linkedNoteIds),
           whyItMatters: input.whyItMatters,
+          reference: input.reference,
           status: "permanent",
           processedAt: input.processedAt,
           lastReviewedAt: input.lastReviewedAt,

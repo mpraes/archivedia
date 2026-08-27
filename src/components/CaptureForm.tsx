@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { ApiError, api } from "@/lib/api";
 import { translateErrorSync } from "@/lib/errors-i18n";
 import type { NoteDto } from "@/lib/note-dto";
+import { ReferenceField } from "./ReferenceField";
 import { WhyCard } from "./WhyCard";
 
 interface CaptureFormProps {
@@ -20,6 +21,7 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [content, setContent] = useState(EMPTY);
   const [why, setWhy] = useState(EMPTY);
+  const [reference, setReference] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
@@ -41,17 +43,24 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
       setError(t("empty_error"));
       return;
     }
-    // The "Why does this matter?" answer is sent as a separate field
-    // (whyItMatters) so the list preview does not need to regex-strip a
-    // sentinel block out of the content body. The API normalises empty
-    // strings to null.
+    // The "Why does this matter?" answer and the source citation are
+    // both sent as separate fields (whyItMatters, reference) so the list
+    // preview does not need to regex-strip sentinel blocks out of the
+    // content body. The API normalises empty strings to null.
     const whyTrimmed = why.trim();
+    const referenceTrimmed = reference.trim();
     setError(null);
     setSubmitting(true);
     try {
-      const { data } = await api.createNote(trimmed, undefined, whyTrimmed || null);
+      const { data } = await api.createNote(
+        trimmed,
+        undefined,
+        whyTrimmed || null,
+        referenceTrimmed || null,
+      );
       setContent(EMPTY);
       setWhy(EMPTY);
+      setReference(EMPTY);
       setConfirmation(t("saved"));
       onSaved(data);
       requestAnimationFrame(() => textareaRef.current?.focus());
@@ -64,7 +73,7 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
     } finally {
       setSubmitting(false);
     }
-  }, [content, why, onSaved, t, tErrors]);
+  }, [content, why, reference, onSaved, t, tErrors]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -150,6 +159,8 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
         onSubmit={submit}
         disabled={submitting}
       />
+
+      <ReferenceField value={reference} onChange={setReference} disabled={submitting} />
     </div>
   );
 }

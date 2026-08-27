@@ -43,6 +43,7 @@ export interface ReviewQueueItemDto {
   publicId: string;
   content: string;
   whyItMatters: string | null;
+  reference: string | null;
   status: "inbox";
   createdAt: string;
   updatedAt: string;
@@ -124,11 +125,13 @@ export const api = {
     content: string,
     tags?: string[],
     whyItMatters?: string | null,
+    reference?: string | null,
   ): Promise<SingleNoteResponse> {
     return sendJson<SingleNoteResponse>("POST", "/notes", {
       content,
       tags,
       whyItMatters: whyItMatters ?? undefined,
+      reference: reference ?? undefined,
     });
   },
   getNote(id: string): Promise<SingleNoteResponse> {
@@ -188,11 +191,13 @@ export const api = {
   /**
    * FR-32: promote an inbox note to permanent from the Review page.
    * `whyItMatters` is optional and lets the user record or refine the
-   * "Why does this matter?" answer at the same time.
+   * "Why does this matter?" answer at the same time. `reference` is
+   * also optional and is preserved across the inbox→permanent
+   * transition.
    */
   makePermanent(
     id: string,
-    input: { content: string; whyItMatters?: string | null },
+    input: { content: string; whyItMatters?: string | null; reference?: string | null },
   ): Promise<SingleNoteResponse> {
     return sendJson<SingleNoteResponse>(
       "POST",
@@ -228,7 +233,7 @@ export const api = {
   },
   createNoteInSpace(
     spaceId: string,
-    input: { content: string; whyItMatters?: string },
+    input: { content: string; whyItMatters?: string; reference?: string | null },
   ): Promise<SingleNoteResponse> {
     return sendJson("POST", `/spaces/${encodeURIComponent(spaceId)}/notes`, input);
   },

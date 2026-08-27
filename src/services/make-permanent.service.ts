@@ -9,8 +9,10 @@ import type { NoteServiceDeps } from "./dependencies";
  * FR-32 / FR-36: promote an inbox note to permanent from the Review
  * page. Accepts an optional `whyItMatters` so the user can fill in or
  * refine the "Why does this matter?" answer at the same time they
- * commit the note to the durable archive. Bumps reviewCount and
- * stamps processedAt + lastReviewedAt.
+ * commit the note to the durable archive. Also accepts an optional
+ * `reference` so the source citation is preserved across the
+ * inbox→permanent transition. Bumps reviewCount and stamps
+ * processedAt + lastReviewedAt.
  *
  * Failures:
  * - missing or soft-deleted note → AppError.notFound (404)
@@ -23,6 +25,7 @@ export async function makePermanent(
   id: string,
   content: string,
   whyItMatters: string | null,
+  reference: string | null = null,
   now: Date = new Date(),
 ): Promise<Note> {
   try {
@@ -32,6 +35,7 @@ export async function makePermanent(
       content,
       linkedNoteIds,
       whyItMatters,
+      reference,
       processedAt: now,
       lastReviewedAt: now,
       updatedAt: now,

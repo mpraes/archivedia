@@ -35,10 +35,21 @@ export const noteWhyItMattersSchema = z
   .max(20_000, "Why-it-matters is too long.")
   .optional();
 
+/**
+ * Optional source citation (book, link, article, video, etc.). Free
+ * text — same length cap as `content` and `whyItMatters` to bound the
+ * request payload and DB row size.
+ */
+export const noteReferenceSchema = z
+  .string({ message: "Reference must be a string when provided." })
+  .max(2_000, "Reference is too long.")
+  .optional();
+
 export const createNoteBodySchema = z.object({
   content: noteContentSchema,
   tags: noteTagsSchema,
   whyItMatters: noteWhyItMattersSchema,
+  reference: noteReferenceSchema,
 });
 
 /**
@@ -64,11 +75,13 @@ export const processNoteBodySchema = z.object({
 /**
  * FR-32: review-time promotion. Both fields are optional individually
  * but content is required (the user must rewrite the note in their
- * own words for it to count as a permanent idea).
+ * own words for it to count as a permanent idea). Reference is also
+ * optional and survives the inbox→permanent transition unchanged.
  */
 export const makePermanentBodySchema = z.object({
   content: noteContentSchema,
   whyItMatters: noteWhyItMattersSchema,
+  reference: noteReferenceSchema,
 });
 
 /**
@@ -167,6 +180,7 @@ export const addSpaceNoteBodySchema = z.union([
   z.object({
     content: z.string().min(1).max(20_000),
     whyItMatters: z.string().max(20_000).optional(),
+    reference: noteReferenceSchema,
   }),
 ]);
 

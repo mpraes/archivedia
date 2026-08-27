@@ -66,6 +66,11 @@ model Note {
   publicId        String       @unique @map("public_id") @db.VarChar(64)
   content         String       @db.Text
   whyItMatters    String?      @map("why_it_matters") @db.Text
+  /// Optional source citation (book, link, article, video, etc.). Free
+  /// text so the user can record exactly what they want — "Designing
+  /// Data-Intensive Applications ch. 5", a URL, an article title, etc.
+  /// Null when no reference was provided.
+  reference       String?      @map("reference") @db.Text
   status          NoteStatus   @default(inbox)
   /// Was TEXT[] in PostgreSQL. Now a JSON column holding a string array.
   /// Reads/writes are serialised in the Postgres repo (see

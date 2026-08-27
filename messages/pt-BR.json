@@ -26,6 +26,12 @@
     "placeholder": "O que essa nota te ensina? O que muda se você esquecer?",
     "optional_hint": "Opcional"
   },
+  "reference": {
+    "title": "Referência",
+    "label": "Referência da fonte",
+    "placeholder": "Livro, link, artigo, vídeo — qualquer coisa que sustente essa ideia.",
+    "optional_hint": "Opcional"
+  },
   "today": {
     "label_today": "Hoje",
     "label_viewing": "Visualizando",

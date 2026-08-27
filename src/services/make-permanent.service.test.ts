@@ -22,6 +22,7 @@ describe("makePermanent service", () => {
       note.id,
       "permanent rewrite",
       "because it matters",
+      null,
       new Date("2026-08-26T12:00:00.000Z"),
     );
     expect(promoted.status).toBe("permanent");
@@ -59,8 +60,31 @@ describe("makePermanent service", () => {
       note.id,
       "rewrite",
       "   ",
+      null,
       new Date("2026-08-26T12:00:00.000Z"),
     );
     expect(promoted.whyItMatters).toBeNull();
+  });
+
+  it("preserves reference across inbox→permanent transition", async () => {
+    const deps = depsFor();
+    const note = await createNote(
+      deps,
+      "draft",
+      { reference: "Designing Data-Intensive Applications ch. 5" },
+      new Date("2026-08-20T12:00:00.000Z"),
+    );
+    expect(note.reference).toBe("Designing Data-Intensive Applications ch. 5");
+
+    const promoted = await makePermanent(
+      deps,
+      note.id,
+      "permanent rewrite",
+      null,
+      "https://example.com/article",
+      new Date("2026-08-26T12:00:00.000Z"),
+    );
+    expect(promoted.reference).toBe("https://example.com/article");
+    expect(promoted.status).toBe("permanent");
   });
 });

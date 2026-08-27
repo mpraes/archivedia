@@ -17,6 +17,11 @@ import type { NoteStatus } from "./note-status";
  * it lives separately from `content` so the list preview, exports, and
  * future review tooling can show it without regex tricks.
  *
+ * `reference` is the optional source citation (book, link, article,
+ * video, etc.) attached to a note (v0.8 / requirements_v3). Free-form
+ * text — the user types exactly what they want. Null when no reference
+ * was provided.
+ *
  * Review lifecycle (v0.7 / FR-27..FR-36):
  * - `processedAt` is set when the note is promoted from `inbox` to
  *   `permanent`. Null while still in the inbox bucket.
@@ -32,6 +37,7 @@ export interface Note {
   readonly publicId: string;
   readonly content: string;
   readonly whyItMatters: string | null;
+  readonly reference: string | null;
   readonly status: NoteStatus;
   readonly linkedNoteIds: readonly string[];
   readonly tags: readonly string[];

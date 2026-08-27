@@ -23,7 +23,7 @@ import type { NoteServiceDeps } from "./dependencies";
 export async function createNote(
   deps: NoteServiceDeps,
   content: string,
-  options: { tags?: string[]; whyItMatters?: string | null } = {},
+  options: { tags?: string[]; whyItMatters?: string | null; reference?: string | null } = {},
   now: Date = new Date(),
 ): Promise<Note> {
   const bucket = minuteBucket(now, deps.timezone);
@@ -37,12 +37,15 @@ export async function createNote(
   const publicId = formatPublicIdStem(now, deps.timezone, sequence);
   const tags = normaliseTags(options.tags);
   const linkedNoteIds = extractLinkedNoteIds(content);
+  const whyItMatters = options.whyItMatters ?? null;
+  const reference = options.reference ?? null;
 
   try {
     return await deps.repository.insert({
       publicId,
       content,
-      whyItMatters: options.whyItMatters ?? null,
+      whyItMatters,
+      reference,
       linkedNoteIds,
       tags,
       createdAt: now,
@@ -54,7 +57,8 @@ export async function createNote(
       return await deps.repository.insert({
         publicId: fallback,
         content,
-        whyItMatters: options.whyItMatters ?? null,
+        whyItMatters,
+        reference,
         linkedNoteIds,
         tags,
         createdAt: now,

@@ -18,6 +18,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const note = await createNote(deps, body.content, {
       tags: body.tags,
       whyItMatters: body.whyItMatters ?? null,
+      reference: body.reference ?? null,
     });
     return Response.json({ data: noteDto(note) }, { status: 201 });
   } catch (err) {

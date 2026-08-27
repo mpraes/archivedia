@@ -4,14 +4,16 @@ import type { Note } from "@/domain/note";
  * Wire shape for a single note. Mirrors the JSON contract documented
  * in requirements.md (id, publicId, content, status, timestamps) plus
  * the v0.4/v0.5 additions (linkedNoteIds, tags), the v0.7 capture-time
- * addition (whyItMatters), and the v0.7 review-lifecycle additions
- * (processedAt, lastReviewedAt, nextReviewAt, reviewCount).
+ * addition (whyItMatters), the v0.8 capture-time addition (reference),
+ * and the v0.7 review-lifecycle additions (processedAt, lastReviewedAt,
+ * nextReviewAt, reviewCount).
  */
 export interface NoteDto {
   id: string;
   publicId: string;
   content: string;
   whyItMatters: string | null;
+  reference: string | null;
   status: Note["status"];
   linkedNoteIds: string[];
   tags: string[];
@@ -33,6 +35,7 @@ export function noteDto(note: Note): NoteDto {
     publicId: note.publicId,
     content: note.content,
     whyItMatters: note.whyItMatters,
+    reference: note.reference,
     status: note.status,
     linkedNoteIds: [...note.linkedNoteIds],
     tags: [...note.tags],

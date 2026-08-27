@@ -69,6 +69,26 @@ export function NoteListItem({ note }: NoteListItemProps) {
         <p className="mt-2 font-[var(--font-display)] text-base text-[var(--color-ink)]">
           {displayPreview(note.content)}
         </p>
+        {note.reference ? (
+          <p className="mt-1 truncate text-[11px] normal-case tracking-normal text-[var(--color-ink-soft)]">
+            <span aria-hidden="true" className="mr-1">
+              ↗
+            </span>
+            {isHttpUrl(note.reference) ? (
+              <a
+                href={note.reference}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => event.stopPropagation()}
+                className="text-[var(--color-accent)] hover:underline"
+              >
+                {note.reference}
+              </a>
+            ) : (
+              <span>{note.reference}</span>
+            )}
+          </p>
+        ) : null}
         <p className="mt-1 text-[11px] normal-case tracking-normal text-[var(--color-ink-soft)]">
           {formatAging(aging, tAging)}
         </p>
@@ -131,6 +151,13 @@ function StatusBadge({ status, label }: { status: NoteStatus; label: string }) {
       {label}
     </span>
   );
+}
+
+/** Lightweight URL sniff so we can render bare-URL references as
+ *  links without dragging in a full URL parser. Accepts http/https only
+ *  to avoid javascript:/data: scheme-confusion footguns. */
+function isHttpUrl(value: string): boolean {
+  return /^https?:\/\/\S+/i.test(value.trim());
 }
 
 function isRecentlyProcessed(note: NoteDto, now: number = Date.now()): boolean {

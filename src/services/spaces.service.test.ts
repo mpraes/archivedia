@@ -102,11 +102,13 @@ describe("spaces service", () => {
         spaceId: space.id,
         content: "investigate memory strategies",
         whyItMatters: "without memory, agents repeat themselves",
+        reference: "https://example.com/memory-paper",
       },
       new Date("2026-08-26T12:00:00.000Z"),
     );
     expect(note.content).toBe("investigate memory strategies");
     expect(note.whyItMatters).toBe("without memory, agents repeat themselves");
+    expect(note.reference).toBe("https://example.com/memory-paper");
     const ids = await deps.spaceNoteRepository.listNoteIdsBySpace({ spaceId: space.id, limit: 10 });
     expect(ids).toEqual([note.id]);
     const memberships = await deps.spaceNoteRepository.listSpaceIdsByNote({ noteId: note.id, limit: 10 });

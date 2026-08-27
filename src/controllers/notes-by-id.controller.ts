@@ -88,6 +88,7 @@ export async function POST_MAKE_PERMANENT(
       noteIdFromParams({ noteId }),
       body.content,
       body.whyItMatters ?? null,
+      body.reference ?? null,
     );
     return Response.json({ data: noteDto(note) });
   } catch (err) {

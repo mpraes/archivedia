@@ -26,6 +26,12 @@
     "placeholder": "What does this teach you? What changes if you forget?",
     "optional_hint": "Optional"
   },
+  "reference": {
+    "title": "Reference",
+    "label": "Source reference",
+    "placeholder": "Book, link, article, video — anything that grounds this idea.",
+    "optional_hint": "Optional"
+  },
   "today": {
     "label_today": "Today",
     "label_viewing": "Viewing",

@@ -185,7 +185,7 @@ export async function removeNoteFromSpace(
  */
 export async function createNoteInSpace(
   deps: SpacesServiceDeps,
-  input: { spaceId: string; content: string; whyItMatters?: string | null },
+  input: { spaceId: string; content: string; whyItMatters?: string | null; reference?: string | null },
   now: Date = new Date(),
 ): Promise<Note> {
   const content = input.content.trim();
@@ -204,12 +204,14 @@ export async function createNoteInSpace(
   const publicId = formatPublicIdStem(now, deps.timezone, existing + 1);
   const linkedNoteIds = extractLinkedNoteIds(content);
   const whyItMatters = input.whyItMatters?.trim() || null;
+  const reference = input.reference?.trim() || null;
 
   try {
     const note = await deps.repository.insert({
       publicId,
       content,
       whyItMatters,
+      reference,
       linkedNoteIds,
       tags: [],
       createdAt: now,

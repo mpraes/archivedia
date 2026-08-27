@@ -12,6 +12,14 @@ function normaliseWhyItMatters(value: string | null | undefined): string | null 
   return trimmed.length === 0 ? null : trimmed;
 }
 
+/** Same normalisation rule as `normaliseWhyItMatters`, applied to the
+ *  optional `reference` column (v0.8). */
+function normaliseReference(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
 /**
  * In-memory fake for unit tests. Keeps the public contract faithful
  * without dragging the Postgres dependency into the test process.
@@ -24,6 +32,7 @@ export class InMemoryNoteRepository implements NoteRepository {
     publicId: string;
     content: string;
     whyItMatters?: string | null;
+    reference?: string | null;
     linkedNoteIds: string[];
     tags: string[];
     createdAt: Date;
@@ -35,6 +44,7 @@ export class InMemoryNoteRepository implements NoteRepository {
       publicId: input.publicId,
       content: input.content,
       whyItMatters: normaliseWhyItMatters(input.whyItMatters),
+      reference: normaliseReference(input.reference),
       status: "inbox",
       linkedNoteIds: [...input.linkedNoteIds],
       tags: [...input.tags],
@@ -179,6 +189,7 @@ export class InMemoryNoteRepository implements NoteRepository {
     content: string;
     linkedNoteIds: string[];
     whyItMatters: string | null;
+    reference: string | null;
     processedAt: Date;
     lastReviewedAt: Date;
     updatedAt: Date;
@@ -191,6 +202,7 @@ export class InMemoryNoteRepository implements NoteRepository {
       content: input.content,
       linkedNoteIds: [...input.linkedNoteIds],
       whyItMatters: normaliseWhyItMatters(input.whyItMatters),
+      reference: normaliseReference(input.reference),
       status: "permanent",
       processedAt: input.processedAt,
       lastReviewedAt: input.lastReviewedAt,
