@@ -6,6 +6,7 @@ import { ApiError, api } from "@/lib/api";
 import { translateErrorSync } from "@/lib/errors-i18n";
 import type { NoteDto } from "@/lib/note-dto";
 import { ReferenceField } from "./ReferenceField";
+import { TagChip } from "./TagChip";
 import { WhyCard } from "./WhyCard";
 
 interface CaptureFormProps {
@@ -13,18 +14,63 @@ interface CaptureFormProps {
 }
 
 const EMPTY = "";
+const MAX_TAG_LENGTH = 32;
 
 export function CaptureForm({ onSaved }: CaptureFormProps) {
   const t = useTranslations("capture");
+  const tNote = useTranslations("note");
   const tCommon = useTranslations("common");
   const tErrors = useTranslations("errors");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [content, setContent] = useState(EMPTY);
   const [why, setWhy] = useState(EMPTY);
   const [reference, setReference] = useState(EMPTY);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagDraft, setTagDraft] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
+
+  const addTag = useCallback(
+    (raw: string) => {
+      const trimmed = raw.trim().toLowerCase();
+      if (!trimmed || trimmed.length > MAX_TAG_LENGTH) return;
+      setTags((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+      setTagDraft(EMPTY);
+    },
+    [],
+  );
+
+  const removeTag = useCallback((tag: string) => {
+    setTags((prev) => prev.filter((entry) => entry !== tag));
+  }, []);
+
+  const onTagKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter" || event.key === ",") {
+        event.preventDefault();
+        addTag(tagDraft);
+        return;
+      }
+      if (event.key === "Backspace" && tagDraft.length === 0 && tags.length > 0) {
+        event.preventDefault();
+        setTags((prev) => prev.slice(0, -1));
+      }
+    },
+    [addTag, tagDraft, tags.length],
+  );
+
+  const onTagChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const next = event.target.value;
+      if (next.includes(",")) {
+        addTag(next.replace(/,.*$/, ""));
+      } else {
+        setTagDraft(next);
+      }
+    },
+    [addTag],
+  );
 
   // FR-03: focar o campo de captura assim que a página estiver interativa.
   useEffect(() => {
@@ -54,13 +100,15 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
     try {
       const { data } = await api.createNote(
         trimmed,
-        undefined,
+        tags,
         whyTrimmed || null,
         referenceTrimmed || null,
       );
       setContent(EMPTY);
       setWhy(EMPTY);
       setReference(EMPTY);
+      setTags([]);
+      setTagDraft(EMPTY);
       setConfirmation(t("saved"));
       onSaved(data);
       requestAnimationFrame(() => textareaRef.current?.focus());
@@ -73,7 +121,7 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
     } finally {
       setSubmitting(false);
     }
-  }, [content, why, reference, onSaved, t, tErrors]);
+  }, [content, why, reference, tags, onSaved, t, tErrors]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -127,6 +175,34 @@ export function CaptureForm({ onSaved }: CaptureFormProps) {
           aria-describedby={error ? "capture-error" : undefined}
           className="w-full resize-y rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)]/60 px-4 py-3 font-[var(--font-display)] text-lg leading-relaxed text-[var(--color-ink)] placeholder:text-[var(--color-ink-soft)]/70 focus:border-[var(--color-accent)] focus:bg-surface"
         />
+
+        <div className="mt-3 flex items-baseline justify-between gap-3">
+          <label htmlFor="capture-tags" className="sr-only">
+            {tNote("tags_label")}
+          </label>
+          <span id="capture-tags-hint" className="text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-soft)]">
+            {tNote("tags_hint")}
+          </span>
+        </div>
+        <div
+          className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--color-line)] bg-surface px-3 py-2 focus-within:border-[var(--color-accent)] focus-within:bg-surface"
+        >
+          {tags.map((tag) => (
+            <TagChip key={tag} tag={tag} onRemove={() => removeTag(tag)} />
+          ))}
+          <input
+            id="capture-tags"
+            placeholder={tNote("tags_placeholder")}
+            aria-label={tNote("tags_label")}
+            aria-describedby="capture-tags-hint"
+            type="text"
+            value={tagDraft}
+            onChange={onTagChange}
+            onKeyDown={onTagKeyDown}
+            disabled={submitting}
+            className="min-w-[8ch] flex-1 bg-transparent text-sm text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-soft)]/70"
+          />
+        </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div aria-live="polite" className="min-h-[1.25rem] text-sm">
